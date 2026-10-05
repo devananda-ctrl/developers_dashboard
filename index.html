@@ -247,6 +247,17 @@
       const [severityFilter, setSeverityFilter] = useState('All');
       const [categoryFilter, setCategoryFilter] = useState('All');
       const [sourceFilter, setSourceFilter] = useState('All');
+      const [sortField, setSortField] = useState('id');
+      const [sortDirection, setSortDirection] = useState('desc');
+
+      const handleSort = (field) => {
+        if (sortField === field) {
+          setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+        } else {
+          setSortField(field);
+          setSortDirection(field === 'severity' || field === 'id' ? 'desc' : 'asc');
+        }
+      };
 
       // Issue Detail Drawer State
       const [showIssueDetailModal, setShowIssueDetailModal] = useState(false);
@@ -969,8 +980,8 @@ Quintessential Design QA Team`;
           if (data) {
             if (Array.isArray(data.bugs) && data.bugs.length > 0) {
               const cleanedBugs = data.bugs.map(b => {
-                let p = b.platform || 'Android';
-                let prod = b.product || 'Quin Within';
+                let p = String(b.platform || 'Android').trim();
+                let prod = String(b.product || 'Quin Within').trim();
                 if (p.toLowerCase() === 'watch' || p.toLowerCase() === 'android tab') {
                   p = (b.title && b.title.toLowerCase().includes('android')) ? 'Android' : 'iOS';
                   if (!prod.toLowerCase().includes('watch')) prod = 'Watch - Fly';
@@ -1237,26 +1248,86 @@ Quintessential Design QA Team`;
         sendPostToGoogleSheet({ action: 'DELETE', table: 'bugs', data: bug });
       };
 
-      // Filtered Bugs
+      // Filtered Bugs (Robust whitespace-trimmed & typo-tolerant matching)
       const activeBugs = bugs.filter(b => {
         if (b.is_deleted === 1) return false;
-        if (activeEnvironment !== 'All' && (b.environment || 'Prod') !== activeEnvironment) return false;
-        if (activePlatform !== 'All Platforms' && b.platform !== activePlatform) return false;
+        
+        // Environment filter
+        if (activeEnvironment !== 'All') {
+          const bEnv = String(b.environment || 'Prod').trim().toLowerCase();
+          const aEnv = String(activeEnvironment).trim().toLowerCase();
+          if (bEnv !== aEnv) return false;
+        }
+
+        // Platform filter
+        if (activePlatform !== 'All Platforms' && activePlatform !== 'All') {
+          const bPlat = String(b.platform || '').trim().toLowerCase();
+          const aPlat = String(activePlatform).trim().toLowerCase();
+          if (bPlat !== aPlat) return false;
+        }
+
+        // Product filter (Robust whitespace-trimmed & typo-tolerant matching)
         if (activeProduct !== 'All') {
-          if (activeProduct === 'Watch (All)') {
-            const prod = (b.product || '').toLowerCase();
-            const title = (b.title || '').toLowerCase();
-            const dev = (b.device_model || '').toLowerCase();
-            if (!prod.includes('watch') && !title.includes('watch') && !dev.includes('watch')) return false;
-          } else if ((b.product || 'Quin Within') !== activeProduct) {
-            return false;
+          const prodClean = String(b.product || '').trim().toLowerCase();
+          const titleClean = String(b.title || '').trim().toLowerCase();
+          const devClean = String(b.device_model || '').trim().toLowerCase();
+          const activeClean = String(activeProduct).trim().toLowerCase();
+
+          if (activeClean === 'watch (all)' || activeClean === 'all watch apps') {
+            if (!prodClean.includes('watch') && !titleClean.includes('watch') && !devClean.includes('watch')) return false;
+          } else {
+            const normProd = prodClean.replace(/[^a-z0-9]/g, '');
+            const normActive = activeClean.replace(/[^a-z0-9]/g, '');
+            
+            // Allow matching "performanceapp" with "perfomanceapp" (handle user typo)
+            const isPerfMatch = (normProd.includes('perf') && normProd.includes('app')) && 
+                                (normActive.includes('perf') && normActive.includes('app'));
+
+            if (prodClean !== activeClean && normProd !== normActive && !isPerfMatch) {
+              return false;
+            }
           }
         }
-        if (severityFilter !== 'All' && b.severity !== severityFilter) return false;
-        if (categoryFilter !== 'All' && b.category !== categoryFilter) return false;
-        if (sourceFilter !== 'All' && (b.source || 'Manual') !== sourceFilter) return false;
-        if (searchQuery && !b.title.toLowerCase().includes(searchQuery.toLowerCase()) && !b.bug_key.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+
+        if (severityFilter !== 'All' && String(b.severity || '').trim().toLowerCase() !== String(severityFilter).trim().toLowerCase()) return false;
+        if (categoryFilter !== 'All' && String(b.category || '').trim().toLowerCase() !== String(categoryFilter).trim().toLowerCase()) return false;
+        if (sourceFilter !== 'All' && String(b.source || 'Manual').trim().toLowerCase() !== String(sourceFilter).trim().toLowerCase()) return false;
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          if (!String(b.title || '').toLowerCase().includes(q) && 
+              !String(b.bug_key || '').toLowerCase().includes(q) && 
+              !String(b.description || '').toLowerCase().includes(q)) return false;
+        }
         return true;
+      });
+
+      // Sorted Bugs
+      const sortedBugs = [...activeBugs].sort((a, b) => {
+        let valA = a[sortField];
+        let valB = b[sortField];
+
+        if (sortField === 'severity') {
+          const weights = { critical: 4, high: 3, medium: 2, low: 1 };
+          valA = weights[String(valA || '').toLowerCase()] || 0;
+          valB = weights[String(valB || '').toLowerCase()] || 0;
+          return sortDirection === 'asc' ? valA - valB : valB - valA;
+        }
+
+        if (sortField === 'id') {
+          valA = Number(valA) || 0;
+          valB = Number(valB) || 0;
+          return sortDirection === 'asc' ? valA - valB : valB - valA;
+        }
+
+        if (sortField === 'bug_key') {
+          valA = String(valA || '');
+          valB = String(valB || '');
+          return sortDirection === 'asc' ? valA.localeCompare(valB, undefined, { numeric: true }) : valB.localeCompare(valA, undefined, { numeric: true });
+        }
+
+        valA = String(valA || '').toLowerCase();
+        valB = String(valB || '').toLowerCase();
+        return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
       });
 
       const trashBugs = bugs.filter(b => b.is_deleted === 1);
@@ -1688,7 +1759,7 @@ Quintessential Design QA Team`;
                   <select className="form-select" value={activeProduct} onChange={(e) => setActiveProduct(e.target.value)}>
                     <option value="All">All Products</option>
                     <option value="Watch (All)">⌚ Watch (All Apps)</option>
-                    {Array.from(new Set(products.map(p => p.name))).map(name => (
+                    {Array.from(new Set(products.map(p => (p.name || '').trim()))).filter(Boolean).sort((a,b) => a.localeCompare(b)).map(name => (
                       <option key={name} value={name}>{name.toLowerCase().includes('watch') ? `⌚ ${name}` : name}</option>
                     ))}
                   </select>
@@ -1713,6 +1784,22 @@ Quintessential Design QA Team`;
                     <option value="Customer">Customer</option>
                     <option value="Developer">Developer</option>
                   </select>
+
+                  <select className="form-select" value={`${sortField}-${sortDirection}`} onChange={(e) => {
+                    const [f, d] = e.target.value.split('-');
+                    setSortField(f);
+                    setSortDirection(d);
+                  }}>
+                    <option value="id-desc">Sort: Newest First</option>
+                    <option value="id-asc">Sort: Oldest First</option>
+                    <option value="bug_key-asc">Sort: Bug ID (A-Z)</option>
+                    <option value="bug_key-desc">Sort: Bug ID (Z-A)</option>
+                    <option value="severity-desc">Sort: Severity (High-Low)</option>
+                    <option value="severity-asc">Sort: Severity (Low-High)</option>
+                    <option value="product-asc">Sort: Product (A-Z)</option>
+                    <option value="title-asc">Sort: Title (A-Z)</option>
+                    <option value="status-asc">Sort: Status</option>
+                  </select>
                 </div>
               </div>
 
@@ -1721,26 +1808,42 @@ Quintessential Design QA Team`;
                 <table className="bugs-table">
                   <thead>
                     <tr>
-                      <th>PLATFORM</th>
-                      <th>Bug ID</th>
-                      <th>Issue Summary</th>
-                      <th>Platform / Product</th>
-                      <th>Environment</th>
-                      <th>Severity</th>
-                      <th>Category</th>
-                      <th>Status</th>
+                      <th onClick={() => handleSort('platform')} style={{ cursor: 'pointer', userSelect: 'none' }} title="Click to sort">
+                        PLATFORM {sortField === 'platform' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                      </th>
+                      <th onClick={() => handleSort('bug_key')} style={{ cursor: 'pointer', userSelect: 'none' }} title="Click to sort">
+                        Bug ID {sortField === 'bug_key' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                      </th>
+                      <th onClick={() => handleSort('title')} style={{ cursor: 'pointer', userSelect: 'none' }} title="Click to sort">
+                        Issue Summary {sortField === 'title' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                      </th>
+                      <th onClick={() => handleSort('product')} style={{ cursor: 'pointer', userSelect: 'none' }} title="Click to sort">
+                        Platform / Product {sortField === 'product' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                      </th>
+                      <th onClick={() => handleSort('environment')} style={{ cursor: 'pointer', userSelect: 'none' }} title="Click to sort">
+                        Environment {sortField === 'environment' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                      </th>
+                      <th onClick={() => handleSort('severity')} style={{ cursor: 'pointer', userSelect: 'none' }} title="Click to sort">
+                        Severity {sortField === 'severity' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                      </th>
+                      <th onClick={() => handleSort('category')} style={{ cursor: 'pointer', userSelect: 'none' }} title="Click to sort">
+                        Category {sortField === 'category' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                      </th>
+                      <th onClick={() => handleSort('status')} style={{ cursor: 'pointer', userSelect: 'none' }} title="Click to sort">
+                        Status {sortField === 'status' ? (sortDirection === 'asc' ? '▲' : '▼') : '↕'}
+                      </th>
                       {!isViewer && <th>Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
-                    {activeBugs.length === 0 ? (
+                    {sortedBugs.length === 0 ? (
                       <tr>
                         <td colSpan="9" style={{ textAlign: 'center', padding: '2rem', color: '#8e9bb0' }}>
                           No active bugs found matching selected criteria.
                         </td>
                       </tr>
                     ) : (
-                      activeBugs.map(b => {
+                      sortedBugs.map(b => {
                         const p = getPlatformBadge(b);
                         return (
                           <tr key={b.id}>
