@@ -1,0 +1,2623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quin QA Bug & Release Dashboard (Portable Cloud Edition)</title>
+  
+  <!-- React & Babel CDNs for standalone browser execution -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Google Fonts & Lucide Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --card-bg: #121827;
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent-blue: #2563eb;
+      --accent-cyan: #00f2fe;
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --accent-orange: #f59e0b;
+      --accent-purple: #8b5cf6;
+      --text-main: #f0f4f8;
+      --text-muted: #8e9bb0;
+      --input-bg: #1a2234;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; }
+    body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; font-size: 14px; }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-dark); }
+    ::-webkit-scrollbar-thumb { background: #2a364f; border-radius: 4px; }
+
+    /* App Container */
+    .app-container { max-width: 1540px; margin: 0 auto; padding: 1.25rem; }
+
+    /* Top Navbar */
+    .top-navbar {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    .header-brand-tier { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .brand-section { display: flex; align-items: center; gap: 0.75rem; }
+    .logo-badge {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      color: #090d16;
+      font-weight: 900;
+      font-size: 1rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 8px;
+      letter-spacing: 1px;
+    }
+    .brand-title { font-size: 1.2rem; font-weight: 700; background: linear-gradient(90deg, #fff, #94a3b8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .lan-badge { font-size: 0.75rem; color: #38bdf8; background: rgba(56, 189, 248, 0.1); padding: 0.2rem 0.5rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(56, 189, 248, 0.2); }
+
+    .user-session-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+    .user-session-box { display: flex; align-items: center; gap: 0.5rem; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--card-border); padding: 0.4rem 0.75rem; border-radius: 8px; font-size: 0.85rem; }
+    
+    .header-menu-tier { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; border-top: 1px solid var(--card-border); padding-top: 0.85rem; }
+
+    /* Environment Switcher */
+    .env-switcher { display: flex; background: #0c1220; border-radius: 8px; padding: 3px; border: 1px solid var(--card-border); }
+    .env-btn { border: none; background: transparent; color: var(--text-muted); padding: 0.4rem 0.85rem; font-size: 0.82rem; font-weight: 600; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; }
+    .env-btn.active.prod { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+    .env-btn.active.dev { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; }
+
+    /* Buttons */
+    .btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border: none; padding: 0.55rem 1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease; }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-secondary { background: rgba(255, 255, 255, 0.05); color: var(--text-main); border: 1px solid var(--card-border); padding: 0.5rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.2s ease; }
+    .btn-secondary:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); }
+    .btn-logout { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    .action-buttons-group { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+
+    /* Category Tabs */
+    .tabs-container { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; overflow-x: auto; padding-bottom: 4px; }
+    .tab-btn { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-muted); padding: 0.6rem 1.1rem; border-radius: 10px; font-weight: 600; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; white-space: nowrap; transition: all 0.2s ease; }
+    .tab-btn:hover { color: var(--text-main); border-color: rgba(255, 255, 255, 0.2); }
+    .tab-btn.active { background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(0, 242, 254, 0.1)); color: #60a5fa; border-color: #3b82f6; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
+
+    /* Filters Bar */
+    .filters-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 1rem; margin-bottom: 1.25rem; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; }
+    .search-box { flex: 1; min-width: 240px; position: relative; }
+    .search-input { width: 100%; background: var(--input-bg); border: 1px solid var(--card-border); color: var(--text-main); padding: 0.6rem 0.85rem 0.6rem 2.2rem; border-radius: 8px; font-size: 0.88rem; outline: none; }
+
+    .filter-selects { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .form-select, select { background: var(--input-bg); border: 1px solid var(--card-border); color: var(--text-main); padding: 0.55rem 0.75rem; border-radius: 8px; font-size: 0.85rem; outline: none; }
+    select option, .form-select option, option { background-color: #121827 !important; color: #ffffff !important; padding: 0.6rem 0.8rem; font-size: 0.9rem; }
+    select option:checked, option:checked { background-color: #2563eb !important; color: #ffffff !important; }
+
+    /* Table Component */
+    .table-container { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; overflow: hidden; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
+    .bugs-table { width: 100%; border-collapse: collapse; text-align: left; }
+    .bugs-table th { background: rgba(255, 255, 255, 0.03); color: var(--text-muted); font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 0.85rem 1rem; border-bottom: 1px solid var(--card-border); }
+    .bugs-table td { padding: 0.85rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.04); font-size: 0.88rem; vertical-align: middle; }
+    .bugs-table tr:hover { background: rgba(255, 255, 255, 0.02); }
+
+    /* Badges */
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+    .badge-critical { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+    .badge-high { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .badge-medium { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+    .badge-low { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .bug-key-badge { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.1); padding: 0.2rem 0.5rem; border-radius: 5px; border: 1px solid rgba(56, 189, 248, 0.2); }
+    .platform-pill { display: inline-flex; align-items: center; justify-content: center; padding: 0.22rem 0.6rem; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 0.73rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; white-space: nowrap; user-select: none; }
+    .platform-pill-android { background: rgba(16, 185, 129, 0.18) !important; color: #34d399 !important; border: 1px solid rgba(16, 185, 129, 0.4) !important; box-shadow: 0 0 10px rgba(16, 185, 129, 0.2); }
+    .platform-pill-ios { background: rgba(56, 189, 248, 0.18) !important; color: #38bdf8 !important; border: 1px solid rgba(56, 189, 248, 0.4) !important; box-shadow: 0 0 10px rgba(56, 189, 248, 0.2); }
+    .platform-pill-web { background: rgba(168, 85, 247, 0.18) !important; color: #c084fc !important; border: 1px solid rgba(168, 85, 247, 0.4) !important; box-shadow: 0 0 10px rgba(168, 85, 247, 0.2); }
+    .platform-pill-backend { background: rgba(245, 158, 11, 0.18) !important; color: #fbbf24 !important; border: 1px solid rgba(245, 158, 11, 0.4) !important; box-shadow: 0 0 10px rgba(245, 158, 11, 0.2); }
+    .platform-pill-other { background: rgba(6, 182, 212, 0.18) !important; color: #22d3ee !important; border: 1px solid rgba(6, 182, 212, 0.4) !important; }
+    .signoff-chip { font-size: 0.75rem; font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 6px; display: inline-flex; align-items: center; }
+
+    /* Modal Overlay */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; }
+    .modal-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); }
+    .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--card-border); display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
+    .modal-body { padding: 1.25rem; }
+    .close-btn { background: transparent; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; }
+    .close-btn:hover { color: #fff; }
+
+    /* Form Fields */
+    .form-group { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
+    .form-label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
+    .form-input, .form-textarea { width: 100%; background: var(--input-bg); border: 1px solid var(--card-border); color: var(--text-main); padding: 0.6rem 0.85rem; border-radius: 8px; font-size: 0.88rem; outline: none; }
+    .form-textarea { min-height: 90px; resize: vertical; }
+
+    /* Landing Card */
+    .landing-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; background: radial-gradient(circle at top, #1e293b, #090d16); }
+    .landing-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; width: 100%; max-width: 440px; padding: 2.25rem; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+    .landing-logo { display: inline-block; background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue)); color: #090d16; font-weight: 900; font-size: 1.25rem; padding: 0.4rem 1rem; border-radius: 8px; margin-bottom: 1rem; }
+    .landing-title { font-size: 1.35rem; font-weight: 800; margin-bottom: 0.4rem; }
+    .landing-sub { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // DEFAULT WEBHOOK URL
+    const DEFAULT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbwIT4MqkJjnM7Y0EfXMWDkDY0ygStoExkVy0NrRi8nJxLIR2o6u2Zswznw6kP8NbvhG/exec';
+
+    // INITIAL BUGSEE SAMPLE DATASET FOR PORTABLE MODE
+    const INITIAL_BUGSEE_DATA = [
+      {
+        id: 101,
+        bug_key: 'BLE-00042',
+        external_id: 'BUGSEE-1685',
+        bug_prefix: 'BLE',
+        bug_sequence: 42,
+        title: 'ConcurrentModificationException at BleScanner.onScanResult',
+        platform: 'Android',
+        product: 'Quin Within',
+        environment: 'Prod',
+        version: '1.1.2',
+        build_number: '518',
+        severity: 'Critical',
+        category: 'BLE / Connectivity',
+        source: 'Bugsee',
+        status: 'Active',
+        reporter: 'Bugsee Crash Engine',
+        assigned_to: 'John Doe',
+        description: 'Automatic crash report from Bugsee. BleScanner array mutated during iteration.',
+        bugsee_url: 'https://app.bugsee.com/projects/quin-app/issues/BUGSEE-1685',
+        stack_trace: 'java.util.ConcurrentModificationException\n  at java.util.ArrayList$Itr.next(ArrayList.java:860)\n  at com.quin.within.ble.BleScanner.onScanResult(BleScanner.kt:142)\n  at android.bluetooth.le.BluetoothLeScanner$1.onScanResult(BluetoothLeScanner.java:210)',
+        console_logs: '[14:22:01.002] INFO: Scanning for Quin Smart Helmet BLE advertisement...\n[14:22:02.115] DEBUG: Device discovered MAC=AA:BB:CC:DD:EE:FF RSSI=-54dBm\n[14:22:02.119] ERROR: ConcurrentModificationException in list iteration!',
+        breadcrumbs: '1. App Launch\n2. Bluetooth Turned ON\n3. Start Quin Helmet Scan\n4. Device Discovered\n5. Crash on UI Update',
+        device_model: 'Samsung Galaxy S22',
+        os_version: 'Android 14 (API 34)',
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 102,
+        bug_key: 'UI-00015',
+        external_id: 'BUGSEE-1661',
+        bug_prefix: 'UI',
+        bug_sequence: 15,
+        title: 'NullPointerInObserver: DashboardFragment.observerViewModels$lambda$53',
+        platform: 'Android',
+        product: 'Quin Within',
+        environment: 'Prod',
+        version: '1.1.2',
+        build_number: '518',
+        severity: 'Critical',
+        category: 'Crash',
+        source: 'Bugsee',
+        status: 'Active',
+        reporter: 'Bugsee Crash Engine',
+        assigned_to: 'Alice Smith',
+        description: 'ViewModel reference lost during configuration change',
+        bugsee_url: 'https://app.bugsee.com/projects/quin-app/issues/BUGSEE-1661',
+        stack_trace: 'java.lang.NullPointerException: Attempt to invoke virtual method on a null object reference\n  at com.quin.within.ui.DashboardFragment.lambda$53(DashboardFragment.kt:98)',
+        console_logs: '[14:10:00.111] INFO: DashboardFragment initialized\n[14:10:01.220] WARN: ViewModel reference lost during configuration change',
+        breadcrumbs: '1. Navigate to Dashboard\n2. Rotate Screen\n3. LiveData Triggered\n4. Null Pointer Crash',
+        device_model: 'Google Pixel 7 Pro',
+        os_version: 'Android 14',
+        created_at: new Date().toISOString()
+      }
+    ];
+
+    function StandaloneDashboard() {
+      // Config & Webhook State
+      const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem('quin_portable_webhook') || DEFAULT_WEBHOOK_URL);
+      const [syncStatus, setSyncStatus] = useState('Idle');
+      const [lastSyncTimestamp, setLastSyncTimestamp] = useState(() => new Date().toLocaleTimeString());
+      const [showSyncModal, setShowSyncModal] = useState(false);
+
+      // Auth State
+      const [currentUser, setCurrentUser] = useState(() => {
+        try {
+          const saved = localStorage.getItem('quin_portable_user');
+          return saved ? JSON.parse(saved) : null;
+        } catch (e) { return null; }
+      });
+      const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+      const [loginError, setLoginError] = useState(null);
+
+      // Navigation & Filters
+      const [activeEnvironment, setActiveEnvironment] = useState('Prod');
+      const [activePlatform, setActivePlatform] = useState(() => {
+        const saved = localStorage.getItem('quin_portable_platform');
+        if (saved && (saved.toLowerCase() === 'watch' || saved.toLowerCase() === 'android tab' || saved.toLowerCase() === 'android_tab')) {
+          return 'All Platforms';
+        }
+        return saved || 'All Platforms';
+      });
+      const [activeProduct, setActiveProduct] = useState('All');
+      const [searchQuery, setSearchQuery] = useState('');
+      const [severityFilter, setSeverityFilter] = useState('All');
+      const [categoryFilter, setCategoryFilter] = useState('All');
+      const [sourceFilter, setSourceFilter] = useState('All');
+
+      // Issue Detail Drawer State
+      const [showIssueDetailModal, setShowIssueDetailModal] = useState(false);
+      const [selectedBugDetail, setSelectedBugDetail] = useState(null);
+      const [detailActiveTab, setDetailActiveTab] = useState('qa');
+
+      // Data States with LocalStorage Cache Backup (Array Validated)
+      const [bugs, setBugs] = useState(() => {
+        try {
+          const saved = localStorage.getItem('quin_portable_bugs');
+          const parsed = saved ? JSON.parse(saved) : null;
+          return Array.isArray(parsed) ? parsed : INITIAL_BUGSEE_DATA;
+        } catch (e) { return INITIAL_BUGSEE_DATA; }
+      });
+      const [builds, setBuilds] = useState(() => {
+        try {
+          const saved = localStorage.getItem('quin_portable_builds');
+          const parsed = saved ? JSON.parse(saved) : null;
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (e) { return []; }
+      });
+      const defaultPlatforms = ['iOS', 'Android', 'Backend', 'Web'];
+      const [platforms, setPlatforms] = useState(() => {
+        try {
+          const saved = localStorage.getItem('quin_portable_platforms');
+          const parsed = saved ? JSON.parse(saved) : null;
+          if (Array.isArray(parsed)) {
+            const filtered = parsed.filter(p => !['watch', 'android tab', 'android_tab'].includes(String(p).toLowerCase()));
+            return filtered.length > 0 ? filtered : defaultPlatforms;
+          }
+          return defaultPlatforms;
+        } catch (e) { return defaultPlatforms; }
+      });
+      const [showPlatformModal, setShowPlatformModal] = useState(false);
+      const [newPlatformName, setNewPlatformName] = useState('');
+      const [showAddBugModal, setShowAddBugModal] = useState(false);
+      const [showTrashModal, setShowTrashModal] = useState(false);
+
+      // Team Reminder State
+      const [showReminderModal, setShowReminderModal] = useState(false);
+      const [reminderSelectedTeam, setReminderSelectedTeam] = useState('Android');
+      const [reminderRecipients, setReminderRecipients] = useState('bindu.hait@quintessential.design, sampan@quintessential.design, vishnu.k@quintessential.design');
+      const [reminderCc, setReminderCc] = useState('devanand.a@quintessential.design, leonard@quintessential.design, chethana.raj@quintessential.design');
+      const [reminderSubject, setReminderSubject] = useState('');
+      const [reminderCustomNote, setReminderCustomNote] = useState('Please review and resolve the following pending QA issues assigned to your team.');
+      const [selectedReminderBugIds, setSelectedReminderBugIds] = useState([]);
+
+      // Integration Base Domain URLs
+      const [jiraBaseUrl, setJiraBaseUrl] = useState(() => localStorage.getItem('quin_jira_base_url') || 'https://quin.atlassian.net');
+      const [bugseeBaseUrl, setBugseeBaseUrl] = useState(() => localStorage.getItem('quin_bugsee_base_url') || 'https://app.bugsee.com/#/projects/quin-app');
+
+      // Dynamic URL Resolution Helper for Jira, Bugsee, Drive, or Custom External Links
+      const getEffectiveBugUrl = (bug) => {
+        if (!bug) return '#';
+        if (bug.jira_url && typeof bug.jira_url === 'string' && bug.jira_url.trim().startsWith('http')) return bug.jira_url.trim();
+        if (bug.bugsee_url && typeof bug.bugsee_url === 'string' && bug.bugsee_url.trim().startsWith('http')) return bug.bugsee_url.trim();
+        if (bug.external_url && typeof bug.external_url === 'string' && bug.external_url.trim().startsWith('http')) return bug.external_url.trim();
+        if (bug.drive_url && typeof bug.drive_url === 'string' && bug.drive_url.trim().startsWith('http')) return bug.drive_url.trim();
+
+        if (bug.source === 'Jira' || (bug.external_id && (bug.external_id.startsWith('QUIN') || bug.external_id.startsWith('QDB')))) {
+          const jKey = bug.external_id || bug.bug_key || '';
+          const cleanJiraBase = (jiraBaseUrl || 'https://quin.atlassian.net').replace(/\/+$/, '');
+          return jKey ? `${cleanJiraBase}/browse/${jKey}` : cleanJiraBase;
+        }
+
+        if (bug.source === 'Bugsee' || (bug.external_id && bug.external_id.startsWith('BUGSEE'))) {
+          const bKey = bug.external_id || bug.bug_key || '';
+          let cleanBugseeBase = (bugseeBaseUrl || 'https://app.bugsee.com/#/projects/quin-app').replace(/\/+$/, '');
+          if (cleanBugseeBase.includes('app.bugsee.com') && !cleanBugseeBase.includes('/#/')) {
+            cleanBugseeBase = cleanBugseeBase.replace('app.bugsee.com/', 'app.bugsee.com/#/');
+          }
+          if (cleanBugseeBase.endsWith('/issues')) return `${cleanBugseeBase}/${bKey}`;
+          return `${cleanBugseeBase}/issues/${bKey}`;
+        }
+
+        return bug.drive_url || bug.attachment_path || '#';
+      };
+
+      // Auto-save local cache whenever bugs or builds change
+      useEffect(() => {
+        if (bugs.length > 0) localStorage.setItem('quin_portable_bugs', JSON.stringify(bugs));
+      }, [bugs]);
+
+      useEffect(() => {
+        if (builds.length > 0) localStorage.setItem('quin_portable_builds', JSON.stringify(builds));
+      }, [builds]);
+
+      useEffect(() => {
+        if (platforms.length > 0) localStorage.setItem('quin_portable_platforms', JSON.stringify(platforms));
+      }, [platforms]);
+
+      const handleAddPlatform = (e) => {
+        e.preventDefault();
+        const pName = newPlatformName.trim();
+        if (!pName) return;
+        if (platforms.some(p => p.toLowerCase() === pName.toLowerCase())) {
+          alert('Platform already exists!');
+          return;
+        }
+        const updated = [...platforms, pName];
+        setPlatforms(updated);
+        setActivePlatform(pName);
+        setNewPlatformName('');
+        setShowPlatformModal(false);
+      };
+
+      const handleDeletePlatform = (platformName) => {
+        if (!confirm(`Are you sure you want to delete platform "${platformName}"?`)) return;
+        const updated = platforms.filter(p => p.toLowerCase() !== platformName.toLowerCase());
+        setPlatforms(updated);
+        if (activePlatform.toLowerCase() === platformName.toLowerCase()) {
+          setActivePlatform('All Platforms');
+        }
+      };
+
+      // Metadata
+      const severities = [
+        { id: 1, name: 'Critical' }, { id: 2, name: 'High' }, { id: 3, name: 'Medium' }, { id: 4, name: 'Low' }
+      ];
+      const categories = [
+        { id: 1, name: 'Crash' }, { id: 2, name: 'UI / UX' }, { id: 3, name: 'BLE / Connectivity' }, { id: 4, name: 'Backend / API' }, { id: 5, name: 'Functional' }
+      ];
+      const usersList = [
+        { id: 1, username: 'admin', email: 'admin@quin.app', role: 'Admin', department: 'Management' },
+        { id: 2, username: 'bindu.hait', name: 'Bindu Hait', email: 'bindu.hait@quintessential.design', role: 'Android Developer', department: 'Software', team: 'Android' },
+        { id: 3, username: 'chethana.raj', name: 'Chethana Raj', email: 'chethana.raj@quintessential.design', role: 'Project Coordinator', department: 'Software', team: 'Coordination' },
+        { id: 4, username: 'devanand.a', name: 'Devanand A', email: 'devanand.a@quintessential.design', role: 'QA - Security & Automation', department: 'Testing', team: 'QA' },
+        { id: 5, username: 'guriya.kumari', name: 'Guriya Kumari', email: 'guriya.kumari@quintessential.design', role: 'iOS Developer', department: 'Software', team: 'iOS' },
+        { id: 6, username: 'leonard', name: 'Leonard Johnson', email: 'leonard@quintessential.design', role: 'QA Tester', department: 'Testing', team: 'QA' },
+        { id: 7, username: 'mahesh.kumar', name: 'Mahesh Kumar', email: 'mahesh.kumar@quintessential.design', role: 'iOS Developer', department: 'Software', team: 'iOS' },
+        { id: 8, username: 'manasa.majoju', name: 'MANASA MAJOJU', email: 'manasa.majoju@quintessential.design', role: 'Front End Developer', department: 'Software', team: 'Web' },
+        { id: 9, username: 'rushikesh.suradkar', name: 'Rushikesh Suradkar', email: 'rushikesh.suradkar@quintessential.design', role: 'iOS Developer', department: 'Software', team: 'iOS' },
+        { id: 10, username: 'sampan', name: 'Sampan Solomon', email: 'sampan@quintessential.design', role: 'Senior Android Developer', department: 'Software', team: 'Android' },
+        { id: 11, username: 'sanket', name: 'Sanket Gajendra Kolte', email: 'sanket@quintessential.design', role: 'Back-End Developer', department: 'Software', team: 'Backend' },
+        { id: 12, username: 'vasista', name: 'Vasista Sharma', email: 'vasista@quintessential.design', role: 'Back-End Developer', department: 'Engineering', team: 'Backend' },
+        { id: 13, username: 'vishnu.k', name: 'Vishnu K', email: 'vishnu.k@quintessential.design', role: 'Senior Android Developer', department: 'Software', team: 'Android' },
+        { id: 14, username: 'developer', email: 'dev@quin.app', role: 'Developer', department: 'Software' },
+        { id: 15, username: 'qa', email: 'qa@quin.app', role: 'QA Engineer', department: 'Testing' },
+        { id: 16, username: 'viewer', email: 'viewer@quin.app', role: 'Viewer', department: 'QA' }
+      ];
+
+      // Main Dashboard Tab & Build Matrix State
+      const [mainTab, setMainTab] = useState('bugs'); // 'bugs' | 'build_matrix'
+      const [buildMatrixSearch, setBuildMatrixSearch] = useState('');
+      const [buildMatrixStatusFilter, setBuildMatrixStatusFilter] = useState('All');
+      const [expandedBuildIds, setExpandedBuildIds] = useState({});
+
+      // Smart Bug ID & Prefix State
+      const [selectedPrefix, setSelectedPrefix] = useState('BUG');
+      const [prefixSequences, setPrefixSequences] = useState({});
+
+      // Build Management Modal State
+      const [showBuildModal, setShowBuildModal] = useState(false);
+      const [editingBuild, setEditingBuild] = useState(null);
+      const [buildForm, setBuildForm] = useState({
+        environment: 'Prod',
+        platform: 'Android',
+        product: 'Quin Within',
+        feature_track: 'General',
+        prod_version: '',
+        prod_build_number: '',
+        branch_name: '',
+        release_notes: '',
+        qa_tested: 'In Progress',
+        app_team_signoff: 'NO',
+        backend_signoff: 'NO',
+        qa_signoff: 'NO',
+        release_signoff: 'NO'
+      });
+
+      // Form State
+      const [newBugForm, setNewBugForm] = useState({
+        custom_bug_key: 'BUG-1001',
+        bug_prefix: 'BUG',
+        title: '',
+        platform: 'Android',
+        product: 'Quin Within',
+        environment: 'Prod',
+        feature_track: 'General',
+        version: '1.2.9',
+        build_number: '518',
+        severity: 'High',
+        category: 'Functional',
+        description: 'Steps to reproduce:\n1. \n2. \n3. \n\nExpected result:\nActual result:\nLogs / Stack trace:',
+        drive_url: ''
+      });
+
+      const isViewer = currentUser?.role === 'Viewer';
+      const isAdmin = currentUser?.role === 'Admin';
+
+      const getPlatformBadge = (bug) => {
+        if (!bug) return { text: 'aND', fullName: 'Android', className: 'platform-pill platform-pill-android', style: {} };
+        let p = (bug.platform || '').trim();
+        const keyUpper = (bug.bug_key || '').toUpperCase();
+        const titleUpper = (bug.title || '').toUpperCase();
+
+        if (!p || p === 'All Platforms' || p === 'All') {
+          if (keyUpper.startsWith('AND') || titleUpper.startsWith('AND') || titleUpper.includes('ANDROID')) {
+            p = 'Android';
+          } else if (keyUpper.startsWith('IOS') || titleUpper.startsWith('IOS') || titleUpper.includes('IOS')) {
+            p = 'iOS';
+          } else if (keyUpper.startsWith('WEB') || titleUpper.startsWith('WEB') || titleUpper.includes('WEB')) {
+            p = 'Web';
+          } else if (keyUpper.startsWith('BEND') || titleUpper.startsWith('BEND') || titleUpper.includes('BACKEND')) {
+            p = 'Backend';
+          } else {
+            p = 'Android';
+          }
+        }
+
+        const pLower = p.toLowerCase();
+        if (pLower.includes('android') || pLower === 'and') {
+          return {
+            text: 'aND',
+            fullName: 'Android',
+            className: 'platform-pill platform-pill-android',
+            style: {
+              background: 'rgba(16, 185, 129, 0.18)',
+              color: '#34d399',
+              border: '1px solid rgba(16, 185, 129, 0.4)',
+              boxShadow: '0 0 8px rgba(16, 185, 129, 0.2)'
+            }
+          };
+        } else if (pLower.includes('ios')) {
+          return {
+            text: 'iOS',
+            fullName: 'iOS',
+            className: 'platform-pill platform-pill-ios',
+            style: {
+              background: 'rgba(56, 189, 248, 0.18)',
+              color: '#38bdf8',
+              border: '1px solid rgba(56, 189, 248, 0.4)',
+              boxShadow: '0 0 8px rgba(56, 189, 248, 0.2)'
+            }
+          };
+        } else if (pLower.includes('web')) {
+          return {
+            text: 'WEB',
+            fullName: 'Web',
+            className: 'platform-pill platform-pill-web',
+            style: {
+              background: 'rgba(168, 85, 247, 0.18)',
+              color: '#c084fc',
+              border: '1px solid rgba(168, 85, 247, 0.4)',
+              boxShadow: '0 0 8px rgba(168, 85, 247, 0.2)'
+            }
+          };
+        } else if (pLower.includes('backend') || pLower.includes('bend') || pLower.includes('api')) {
+          return {
+            text: 'bEND',
+            fullName: 'Backend',
+            className: 'platform-pill platform-pill-backend',
+            style: {
+              background: 'rgba(245, 158, 11, 0.18)',
+              color: '#fbbf24',
+              border: '1px solid rgba(245, 158, 11, 0.4)',
+              boxShadow: '0 0 8px rgba(245, 158, 11, 0.2)'
+            }
+          };
+        } else {
+          return {
+            text: p.substring(0, 4).toUpperCase(),
+            fullName: p,
+            className: 'platform-pill platform-pill-other',
+            style: {
+              background: 'rgba(6, 182, 212, 0.18)',
+              color: '#22d3ee',
+              border: '1px solid rgba(6, 182, 212, 0.4)'
+            }
+          };
+        }
+      };
+
+      const generateMailDraftData = (bug) => {
+        const to = 'devanand.a@quintessential.design, leonard@quintessential.design';
+        const bugKey = bug.bug_key || 'BUG-000';
+        const title = bug.title || 'Untitled Bug';
+        const platform = bug.platform || 'Android';
+        const product = bug.product || 'Quin Within';
+        const environment = bug.environment || 'Prod';
+        const severity = bug.severity || 'Medium';
+        const category = bug.category || 'Functional';
+        const reporter = bug.reporter || 'QA Team';
+        const version = bug.version || 'v1.0.0';
+        const buildNo = bug.build_number ? `(Build #${bug.build_number})` : '';
+        const description = bug.description || 'No description provided.';
+        const nowStr = new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'medium' });
+
+        const subject = `[RESOLVED] Bug Fix Notification: ${bugKey} - ${title}`;
+
+        const body = `Hi QA Team, Devanand & Leonard,
+
+I have resolved the issue [${bugKey}]. Please review and verify to close this bug.
+
+==================================================
+📌 BUG RESOLUTION DETAILS
+==================================================
+• Bug ID: ${bugKey}
+• Title: ${title}
+• Platform: ${platform} (${product})
+• Environment: ${environment}
+• Severity: ${severity}
+• Category: ${category}
+• Status: Resolved / Ready for QA Re-testing
+• Reporter: ${reporter}
+• Version: ${version} ${buildNo}
+• Resolution Timestamp: ${nowStr}
+
+==================================================
+📝 ISSUE DESCRIPTION & REPRODUCTION STEPS
+==================================================
+${description}
+
+==================================================
+Notice: The fix for this bug has been completed and deployed. QA team can verify and close this Bug.
+
+Best regards,
+Developer / QA Resolution System`;
+
+        return { to, subject, body };
+      };
+
+      const handleQuickGmailDraft = (bug) => {
+        if (!bug) return;
+        const { to, subject, body } = generateMailDraftData(bug);
+        const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.open(url, '_blank');
+      };
+
+      const handleQuickMailtoDraft = (bug) => {
+        if (!bug) return;
+        const { to, subject, body } = generateMailDraftData(bug);
+        const url = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.location.href = url;
+      };
+
+      // Team Definitions for Platform-Specific Bug Reminders
+      const TEAM_DEFINITIONS = {
+        Android: {
+          name: 'Android Team',
+          platform: 'Android',
+          recipients: 'bindu.hait@quintessential.design, sampan@quintessential.design, vishnu.k@quintessential.design',
+          lead: 'Sampan Solomon / Vishnu K / Bindu Hait',
+          color: '#3DDC84'
+        },
+        iOS: {
+          name: 'iOS Team',
+          platform: 'iOS',
+          recipients: 'guriya.kumari@quintessential.design, mahesh.kumar@quintessential.design, rushikesh.suradkar@quintessential.design',
+          lead: 'Rushikesh / Mahesh / Guriya',
+          color: '#007AFF'
+        },
+        Web: {
+          name: 'Web / Frontend Team',
+          platform: 'Web',
+          recipients: 'manasa.majoju@quintessential.design',
+          lead: 'MANASA MAJOJU',
+          color: '#FF9500'
+        },
+        Backend: {
+          name: 'Backend / Engineering Team',
+          platform: 'Backend',
+          recipients: 'sanket@quintessential.design, vasista@quintessential.design',
+          lead: 'Sanket Gajendra Kolte / Vasista Sharma',
+          color: '#AF52DE'
+        }
+      };
+
+      const getTeamActiveBugs = (teamKey) => {
+        const teamDef = TEAM_DEFINITIONS[teamKey] || TEAM_DEFINITIONS.Android;
+        return bugs.filter(b => {
+          if (b.status === 'Solved' || b.status === 'Closed' || b.status === 'Resolved') return false;
+          const p = (b.platform || '').trim().toLowerCase();
+          const keyUpper = (b.bug_key || '').toUpperCase();
+          if (teamKey === 'Android') {
+            return p.includes('and') || keyUpper.startsWith('AND') || keyUpper.startsWith('DROID');
+          }
+          if (teamKey === 'iOS') {
+            return p.includes('ios') || p.includes('apple') || keyUpper.startsWith('IOS') || keyUpper.startsWith('IPHONE');
+          }
+          if (teamKey === 'Web') {
+            return p.includes('web') || p.includes('front') || keyUpper.startsWith('WEB') || keyUpper.startsWith('FE');
+          }
+          if (teamKey === 'Backend') {
+            return p.includes('back') || p.includes('api') || p.includes('bend') || keyUpper.startsWith('BEND') || keyUpper.startsWith('BE');
+          }
+          return false;
+        });
+      };
+
+      const handleOpenReminderModal = (team = 'Android') => {
+        const targetTeam = TEAM_DEFINITIONS[team] ? team : 'Android';
+        const def = TEAM_DEFINITIONS[targetTeam];
+        setReminderSelectedTeam(targetTeam);
+        setReminderRecipients(def.recipients);
+        setReminderCc('devanand.a@quintessential.design, leonard@quintessential.design, chethana.raj@quintessential.design');
+        const targetBugs = getTeamActiveBugs(targetTeam);
+        setSelectedReminderBugIds(targetBugs.map(b => b.id));
+        setReminderSubject(`[ACTION REQUIRED] Pending QA Bug Fixes Reminder - ${def.name} (${targetBugs.length} Issues)`);
+        setShowReminderModal(true);
+      };
+
+      const handleSwitchReminderTeam = (teamKey) => {
+        const def = TEAM_DEFINITIONS[teamKey] || TEAM_DEFINITIONS.Android;
+        setReminderSelectedTeam(teamKey);
+        setReminderRecipients(def.recipients);
+        const targetBugs = getTeamActiveBugs(teamKey);
+        setSelectedReminderBugIds(targetBugs.map(b => b.id));
+        setReminderSubject(`[ACTION REQUIRED] Pending QA Bug Fixes Reminder - ${def.name} (${targetBugs.length} Issues)`);
+      };
+
+      const handleToggleReminderBug = (bugId) => {
+        setSelectedReminderBugIds(prev => {
+          if (prev.includes(bugId)) return prev.filter(id => id !== bugId);
+          return [...prev, bugId];
+        });
+      };
+
+      const handleSelectAllTeamBugs = (teamBugs) => {
+        setSelectedReminderBugIds(teamBugs.map(b => b.id));
+      };
+
+      const handleDeselectAllTeamBugs = () => {
+        setSelectedReminderBugIds([]);
+      };
+
+      const generateTeamReminderEmail = () => {
+        const teamDef = TEAM_DEFINITIONS[reminderSelectedTeam] || { name: `${reminderSelectedTeam} Team` };
+        const teamBugs = getTeamActiveBugs(reminderSelectedTeam);
+        const selectedBugs = teamBugs.filter(b => selectedReminderBugIds.includes(b.id));
+        const nowStr = new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'medium' });
+
+        const subject = reminderSubject || `[ACTION REQUIRED] Pending Bug Fix Reminder - ${teamDef.name} (${selectedBugs.length} Issues)`;
+
+        let bugListText = '';
+        if (selectedBugs.length === 0) {
+          bugListText = '(No bugs selected for reminder)';
+        } else {
+          bugListText = selectedBugs.map((b, idx) => {
+            const pBadge = getPlatformBadge(b);
+            const refLink = b.jira_url || b.bugsee_url || (b.external_id ? `Ref: ${b.external_id}` : '');
+            return `${idx + 1}. [${b.bug_key}] [${pBadge.text}] [${b.severity || 'Medium'}] ${b.title}
+   • Platform: ${pBadge.fullName} | Product: ${b.product || 'Quin Within'} | Env: ${b.environment || 'Prod'}
+   • Category: ${b.category || 'Functional'} | Status: ${b.status || 'Active'}
+   • Assigned To: ${b.assigned_to || b.fixed_by || 'Unassigned'} | Reporter: ${b.reporter || 'QA Tester'}
+   ${refLink ? `• Issue Link / Ref: ${refLink}\n` : ''}`;
+          }).join('\n');
+        }
+
+        const body = `Hi ${teamDef.name},
+
+${reminderCustomNote}
+
+==================================================
+📌 PENDING QA BUGS FOR RESOLUTION (${selectedBugs.length} Items)
+==================================================
+${bugListText}
+==================================================
+Notification Timestamp: ${nowStr}
+
+Notice: Please provide an update on resolution status or let the QA team know once fixes are ready for re-testing.
+
+Best regards,
+Devanand A (QA - Security & Automation)
+devanand.a@quintessential.design
+Quintessential Design QA Team`;
+
+        return {
+          to: reminderRecipients,
+          cc: reminderCc,
+          subject,
+          body,
+          selectedCount: selectedBugs.length,
+          totalCount: teamBugs.length
+        };
+      };
+
+      const handleDraftReminderGmail = () => {
+        const { to, cc, subject, body } = generateTeamReminderEmail();
+        const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&cc=${encodeURIComponent(cc)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.open(url, '_blank');
+      };
+
+      const handleDraftReminderMailto = () => {
+        const { to, cc, subject, body } = generateTeamReminderEmail();
+        const url = `mailto:${encodeURIComponent(to)}?cc=${encodeURIComponent(cc)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.location.href = url;
+      };
+
+      const handleCopyReminderContent = () => {
+        const { subject, body } = generateTeamReminderEmail();
+        navigator.clipboard.writeText(`Subject: ${subject}\n\n${body}`);
+        alert('Email Reminder subject & bug list copied to clipboard!');
+      };
+
+      const [hiddenPrefixes, setHiddenPrefixes] = useState(() => {
+        try {
+          const saved = localStorage.getItem('quin_portable_hidden_prefixes');
+          return saved ? JSON.parse(saved) : [];
+        } catch (e) { return []; }
+      });
+
+      useEffect(() => {
+        localStorage.setItem('quin_portable_hidden_prefixes', JSON.stringify(hiddenPrefixes));
+      }, [hiddenPrefixes]);
+
+      // Dynamic Prefix Sequence Calculation
+      const calculateAvailablePrefixes = () => {
+        const officialPrefixes = ['AND', 'IOS', 'WEB', 'BEND', 'BLE', 'CRASH', 'UI', 'BE', 'FUNC', 'BUG'];
+        const prefixMap = {};
+        const hiddenSet = new Set(hiddenPrefixes.map(h => String(h).toUpperCase()));
+
+        officialPrefixes.forEach(p => {
+          if (!hiddenSet.has(p)) prefixMap[p] = 0;
+        });
+
+        Object.keys(prefixSequences).forEach(p => {
+          if (!['BUGSEE', 'QDB', 'PLO', 'BLEFH', 'IOSSE'].includes(p) && !hiddenSet.has(p)) {
+            prefixMap[p] = prefixSequences[p] || 0;
+          }
+        });
+
+        bugs.forEach(b => {
+          if (b.is_deleted === 1) return;
+          let p = (b.bug_prefix || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+          let seq = b.bug_sequence;
+          if (!p && b.bug_key && b.bug_key.includes('-')) {
+            const parts = b.bug_key.split('-');
+            p = parts[0].toUpperCase().replace(/[^A-Z0-9]/g, '');
+            seq = parseInt(parts[1], 10);
+          }
+          if (p && p.length >= 2 && !['BUGSEE', 'QDB', 'PLO', 'BLEFH', 'IOSSE'].includes(p) && !hiddenSet.has(p)) {
+            if (!isNaN(seq) && (prefixMap[p] === undefined || seq > prefixMap[p])) {
+              prefixMap[p] = seq;
+            }
+          }
+        });
+
+        return Object.keys(prefixMap).map(p => {
+          const currentMax = prefixMap[p] || 0;
+          let nextSeq = 1;
+          if (currentMax > 0) nextSeq = currentMax + 1;
+          else if (['AND', 'IOS', 'WEB', 'BEND'].includes(p)) nextSeq = 1;
+          else nextSeq = 1001;
+          const nextKey = `${p}-${String(nextSeq).padStart(4, '0')}`;
+          return { prefix: p, latestSeq: currentMax, nextSeq, nextKey };
+        });
+      };
+
+      const handleDeletePrefix = (prefixToDelete) => {
+        const targetP = (prefixToDelete || selectedPrefix || 'BUG').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (!confirm(`Are you sure you want to delete prefix suggestion "${targetP}"?`)) return;
+        setHiddenPrefixes(prev => [...prev, targetP]);
+        const avail = calculateAvailablePrefixes().filter(a => a.prefix !== targetP);
+        const defP = avail[0] ? avail[0].prefix : 'AND';
+        const match = avail.find(a => a.prefix === defP);
+        setSelectedPrefix(defP);
+        setNewBugForm(f => ({ ...f, custom_bug_key: match ? match.nextKey : 'AND-0001', bug_prefix: defP }));
+        alert(`Prefix "${targetP}" deleted from suggestions!`);
+      };
+
+      const handleMigrateUniversalKeys = () => {
+        if (!confirm(`Update all existing bug records to Universal Platform IDs (AND-0001, IOS-0001, WEB-0001, BEND-0001)?`)) return;
+        const platformCounters = {};
+        const updated = bugs.map(bug => {
+          const platLower = String(bug.platform || 'Android').toLowerCase();
+          let pPrefix = 'AND';
+          if (platLower.includes('ios')) pPrefix = 'IOS';
+          else if (platLower.includes('android')) pPrefix = 'AND';
+          else if (platLower.includes('web')) pPrefix = 'WEB';
+          else if (platLower.includes('backend') || platLower.includes('be')) pPrefix = 'BEND';
+          else pPrefix = platLower.replace(/[^a-z0-9]/g, '').toUpperCase().slice(0, 5) || 'BUG';
+
+          if (!platformCounters[pPrefix]) platformCounters[pPrefix] = 1;
+          else platformCounters[pPrefix]++;
+
+          const newSeq = platformCounters[pPrefix];
+          const newKey = `${pPrefix}-${String(newSeq).padStart(4, '0')}`;
+
+          return {
+            ...bug,
+            bug_key: newKey,
+            bug_prefix: pPrefix,
+            bug_sequence: newSeq
+          };
+        });
+
+        setBugs(updated);
+        alert(`Successfully updated ${updated.length} bugs to Universal Platform IDs!`);
+      };
+
+      const handleResetPrefixSequence = (prefixToReset) => {
+        const targetP = (prefixToReset || selectedPrefix || 'IOS').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (!confirm(`Reset sequence counter for prefix "${targetP}" back to #0001?`)) return;
+        setPrefixSequences(prev => ({ ...prev, [targetP]: 0 }));
+        const nextKey = `${targetP}-0001`;
+        setNewBugForm(f => ({ ...f, custom_bug_key: nextKey, bug_prefix: targetP }));
+        alert(`Sequence counter for ${targetP} reset to #0001!`);
+      };
+
+      // Dynamic Build Matrix Calculation
+      const getMatrixBuilds = () => {
+        const buildList = Array.isArray(builds) ? [...builds] : [];
+
+        if (Array.isArray(bugs)) {
+          bugs.forEach(b => {
+            if (b.is_deleted === 1) return;
+            const v = b.version || '1.1.2';
+            const bn = b.build_number || '518';
+            const p = b.platform || 'Android';
+            const env = b.environment || 'Prod';
+            const prod = b.product || 'Quin Within';
+
+            let existing = buildList.find(x => String(x.prod_version || x.version) === String(v) && String(x.prod_build_number || x.build_number) === String(bn) && String(x.platform).toLowerCase() === String(p).toLowerCase());
+            if (!existing) {
+              buildList.push({
+                id: `dynamic_${v}_${bn}_${p}`,
+                platform: p,
+                prod_version: v,
+                prod_build_number: bn,
+                environment: env,
+                product: prod,
+                feature_track: b.feature_track || 'General',
+                branch_name: 'main',
+                release_notes: `Release build for version ${v}`,
+                qa_tested: 'Yes',
+                app_team_signoff: 'YES',
+                backend_signoff: 'YES',
+                qa_signoff: 'YES'
+              });
+            }
+          });
+        }
+
+        return buildList
+          .filter(b => {
+            const bEnv = b.environment || 'Prod';
+            const bPlat = b.platform || 'Android';
+            const bProd = b.product || 'Quin Within';
+            if (activeEnvironment !== 'All' && bEnv !== activeEnvironment) return false;
+            if (activePlatform !== 'All Platforms' && bPlat !== activePlatform) return false;
+            if (activeProduct !== 'All' && bProd !== activeProduct) return false;
+            if (buildMatrixSearch) {
+              const q = buildMatrixSearch.toLowerCase();
+              const vMatch = (b.prod_version || '').toLowerCase().includes(q);
+              const bnMatch = (b.prod_build_number || '').toLowerCase().includes(q);
+              const notesMatch = (b.release_notes || '').toLowerCase().includes(q);
+              if (!vMatch && !bnMatch && !notesMatch) return false;
+            }
+            return true;
+          })
+          .map(b => {
+            const matchedBugs = (Array.isArray(bugs) ? bugs : []).filter(bug => {
+              if (bug.is_deleted === 1) return false;
+              const matchesVersion = bug.version && (b.prod_version || b.version) && String(bug.version).trim().toLowerCase() === String(b.prod_version || b.version).trim().toLowerCase();
+              const matchesBuildNum = !bug.build_number || !(b.prod_build_number || b.build_number) || String(bug.build_number).trim() === String(b.prod_build_number || b.build_number).trim();
+              const matchesPlatform = !bug.platform || !b.platform || String(bug.platform).trim().toLowerCase() === String(b.platform).trim().toLowerCase();
+              return matchesVersion && matchesBuildNum && matchesPlatform;
+            });
+
+            const total = matchedBugs.length;
+            const active = matchedBugs.filter(bug => bug.status === 'Active' || bug.status === 'Open').length;
+            const solved = matchedBugs.filter(bug => bug.status === 'Solved' || bug.status === 'Approved').length;
+            const critical = matchedBugs.filter(bug => String(bug.severity).toLowerCase().includes('critical') || String(bug.severity).toLowerCase().includes('high')).length;
+
+            return {
+              ...b,
+              bugs: matchedBugs,
+              stats: { total, active, solved, critical }
+            };
+          })
+          .filter(b => {
+            if (buildMatrixStatusFilter === 'WithActiveBugs') return b.stats.active > 0;
+            if (buildMatrixStatusFilter === 'Clean') return b.stats.active === 0;
+            if (buildMatrixStatusFilter === 'Critical') return b.stats.critical > 0;
+            return true;
+          });
+      };
+
+      // Pull Latest Data from Google Sheet Web App (Safe Parse)
+      const fetchSheetData = async () => {
+        if (!webhookUrl) return;
+        setSyncStatus('Syncing...');
+        try {
+          const res = await fetch(webhookUrl, { method: 'GET', redirect: 'follow' });
+          const text = await res.text();
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch (parseErr) {
+            console.warn('[GoogleSheetSync] Returned non-JSON html page, preserving local cache.');
+            setSyncStatus('Local Cache');
+            return;
+          }
+          if (data) {
+            if (Array.isArray(data.bugs) && data.bugs.length > 0) {
+              const cleanedBugs = data.bugs.map(b => {
+                let p = b.platform || 'Android';
+                let prod = b.product || 'Quin Within';
+                if (p.toLowerCase() === 'watch' || p.toLowerCase() === 'android tab') {
+                  p = (b.title && b.title.toLowerCase().includes('android')) ? 'Android' : 'iOS';
+                  if (!prod.toLowerCase().includes('watch')) prod = 'Watch - Fly';
+                }
+                return { ...b, platform: p, product: prod };
+              });
+              setBugs(cleanedBugs);
+            }
+            if (Array.isArray(data.builds) && data.builds.length > 0) setBuilds(data.builds);
+          }
+          setSyncStatus('Synced');
+          setLastSyncTimestamp(new Date().toLocaleTimeString());
+        } catch (e) {
+          console.error(e);
+          setSyncStatus('Local Cache');
+        }
+      };
+
+      // Bulletproof Google Sheet Web App POST Helper
+      const sendPostToGoogleSheet = async (payload) => {
+        if (!webhookUrl) return false;
+        try {
+          await fetch(webhookUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: typeof payload === 'string' ? payload : JSON.stringify(payload)
+          });
+          setLastSyncTimestamp(new Date().toLocaleTimeString());
+          return true;
+        } catch (e) {
+          console.warn('Primary fetch failed, attempting fallback sendBeacon...', e);
+          try {
+            if (navigator.sendBeacon) {
+              const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
+              navigator.sendBeacon(webhookUrl, blob);
+              setLastSyncTimestamp(new Date().toLocaleTimeString());
+              return true;
+            }
+          } catch (err) {
+            console.error('All POST attempts failed:', err);
+          }
+          return false;
+        }
+      };
+
+      // Push All Data to Google Sheet Web App
+      const pushAllDataToSheet = async () => {
+        if (!webhookUrl) return;
+        setSyncStatus('Pushing...');
+        const success = await sendPostToGoogleSheet({
+          action: 'FULL_SYNC',
+          bugs,
+          builds,
+          allData: { bugs, builds }
+        });
+        if (success) {
+          setSyncStatus('Synced');
+          setLastSyncTimestamp(new Date().toLocaleTimeString());
+          alert('✅ Dataset successfully pushed to Google Sheet!');
+        } else {
+          setSyncStatus('Error');
+          alert('⚠️ Push failed. Please check network connection.');
+        }
+      };
+
+      // Initial Fetch & 15-Minute Auto-Sync Timer
+      useEffect(() => {
+        fetchSheetData();
+
+        const autoSyncTimer = setInterval(async () => {
+          if (webhookUrl) {
+            setSyncStatus('AutoSync...');
+            try {
+              await sendPostToGoogleSheet({
+                action: 'FULL_SYNC',
+                bugs,
+                builds,
+                allData: { bugs, builds }
+              });
+              const res = await fetch(webhookUrl, { method: 'GET', redirect: 'follow' });
+              const text = await res.text();
+              try {
+                const data = JSON.parse(text);
+                if (data && Array.isArray(data.bugs) && data.bugs.length > 0) {
+                  setBugs(data.bugs);
+                }
+              } catch (pErr) {}
+              setSyncStatus('Synced');
+              setLastSyncTimestamp(new Date().toLocaleTimeString());
+            } catch (err) {
+              console.error(err);
+              setSyncStatus('Local Cache');
+            }
+          }
+        }, 15 * 60 * 1000);
+
+        return () => clearInterval(autoSyncTimer);
+      }, [webhookUrl, bugs, builds]);
+
+      // Handle opening Issue Detail Drawer
+      const handleOpenBugDetail = (bug) => {
+        setSelectedBugDetail(bug);
+        setDetailActiveTab('qa');
+        setShowIssueDetailModal(true);
+      };
+
+      // Handle Syncing Historical Bugsee Issues in Portable Mode
+      const handleSyncHistoricalBugsee = () => {
+        const merged = [...INITIAL_BUGSEE_DATA];
+        bugs.forEach(b => {
+          if (!merged.find(x => x.bug_key === b.bug_key)) {
+            merged.push(b);
+          }
+        });
+        setBugs(merged);
+        alert('⚡ Successfully imported 2 historical Bugsee crash reports!');
+      };
+
+      // Login Handler
+      const handleUserLogin = (e) => {
+        e.preventDefault();
+        setLoginError(null);
+        const user = usersList.find(u => 
+          (u.username.toLowerCase() === loginForm.username.trim().toLowerCase() || u.email.toLowerCase() === loginForm.username.trim().toLowerCase())
+        );
+        if (user && (loginForm.password === 'quin123' || loginForm.password === 'admin123' || loginForm.password === 'dev123' || loginForm.password === 'qa123' || loginForm.password === 'viewer123' || loginForm.password === '123456')) {
+          setCurrentUser(user);
+          localStorage.setItem('quin_portable_user', JSON.stringify(user));
+        } else {
+          setLoginError('Invalid credentials. Default Password: quin123 (or admin123 for admin)');
+        }
+      };
+
+      const handleGuestLogin = () => {
+        const guestObj = { id: 0, username: 'Guest Viewer', email: 'guest@quin.app', role: 'Viewer' };
+        setCurrentUser(guestObj);
+        localStorage.setItem('quin_portable_user', JSON.stringify(guestObj));
+      };
+
+      const handleUserLogout = () => {
+        setCurrentUser(null);
+        localStorage.removeItem('quin_portable_user');
+      };
+
+      // Report Bug Form Handler
+      const handleCreateBug = async (e) => {
+        e.preventDefault();
+        if (newBugForm.title.trim().length < 5) {
+          alert('Title must be at least 5 characters long.');
+          return;
+        }
+
+        let userKey = (newBugForm.custom_bug_key || '').trim();
+        let cleanP = (newBugForm.bug_prefix || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (!cleanP && userKey) {
+          cleanP = userKey.split('-')[0].toUpperCase().replace(/[^A-Z0-9]/g, '');
+        }
+        if (!cleanP || cleanP.length < 2) cleanP = 'BUG';
+
+        let parsedSeq = null;
+        if (userKey && userKey.includes('-')) {
+          const parts = userKey.split('-');
+          cleanP = parts[0].toUpperCase().replace(/[^A-Z0-9]/g, '');
+          const nP = parseInt(parts[1], 10);
+          if (!isNaN(nP)) parsedSeq = nP;
+        }
+
+        let finalSeq = parsedSeq;
+        if (finalSeq === null) {
+          const avail = calculateAvailablePrefixes();
+          const match = avail.find(a => a.prefix === cleanP);
+          finalSeq = match ? match.nextSeq : (cleanP === 'IOS' || cleanP === 'AND' ? 1 : 1001);
+        }
+
+        let finalKey = `${cleanP}-${String(finalSeq).padStart(4, '0')}`;
+        while (bugs.some(b => b.bug_key === finalKey && b.is_deleted !== 1)) {
+          finalSeq++;
+          finalKey = `${cleanP}-${String(finalSeq).padStart(4, '0')}`;
+        }
+
+        const newBug = {
+          id: Date.now(),
+          bug_key: finalKey,
+          bug_prefix: cleanP,
+          bug_sequence: finalSeq,
+          title: newBugForm.title,
+          platform: newBugForm.platform,
+          product: newBugForm.product,
+          environment: newBugForm.environment,
+          feature_track: newBugForm.environment === 'Prod' ? 'General' : newBugForm.feature_track,
+          version: newBugForm.version,
+          build_number: newBugForm.build_number,
+          severity: newBugForm.severity,
+          category: newBugForm.category,
+          source: 'Manual',
+          status: 'Active',
+          reporter: currentUser?.username || 'Devanand A',
+          description: newBugForm.description,
+          drive_url: newBugForm.drive_url || null,
+          created_at: new Date().toISOString(),
+          is_deleted: 0
+        };
+
+        const updated = [newBug, ...bugs];
+        setBugs(updated);
+        setPrefixSequences(prev => ({ ...prev, [cleanP]: finalSeq }));
+        setShowAddBugModal(false);
+
+        // Push to Google Sheet
+        sendPostToGoogleSheet({ action: 'CREATE', table: 'bugs', data: newBug });
+      };
+
+      // Soft Delete Bug
+      const handleDeleteBug = (bug) => {
+        if (isViewer) return;
+        if (!confirm(`Are you sure you want to delete bug [${bug.bug_key}]?`)) return;
+
+        const updated = bugs.map(b => b.id === bug.id ? { ...b, is_deleted: 1, deleted_by: currentUser?.username, deleted_at: new Date().toISOString() } : b);
+        setBugs(updated);
+
+        sendPostToGoogleSheet({ action: 'DELETE', table: 'bugs', data: bug });
+      };
+
+      // Filtered Bugs
+      const activeBugs = bugs.filter(b => {
+        if (b.is_deleted === 1) return false;
+        if (activeEnvironment !== 'All' && (b.environment || 'Prod') !== activeEnvironment) return false;
+        if (activePlatform !== 'All Platforms' && b.platform !== activePlatform) return false;
+        if (activeProduct !== 'All') {
+          if (activeProduct === 'Watch (All)') {
+            const prod = (b.product || '').toLowerCase();
+            const title = (b.title || '').toLowerCase();
+            const dev = (b.device_model || '').toLowerCase();
+            if (!prod.includes('watch') && !title.includes('watch') && !dev.includes('watch')) return false;
+          } else if ((b.product || 'Quin Within') !== activeProduct) {
+            return false;
+          }
+        }
+        if (severityFilter !== 'All' && b.severity !== severityFilter) return false;
+        if (categoryFilter !== 'All' && b.category !== categoryFilter) return false;
+        if (sourceFilter !== 'All' && (b.source || 'Manual') !== sourceFilter) return false;
+        if (searchQuery && !b.title.toLowerCase().includes(searchQuery.toLowerCase()) && !b.bug_key.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+        return true;
+      });
+
+      const trashBugs = bugs.filter(b => b.is_deleted === 1);
+
+      // LANDING / LOGIN GATE
+      if (!currentUser) {
+        return (
+          <div className="landing-container">
+            <div className="landing-card">
+              <div className="landing-logo">QUIN</div>
+              <h1 className="landing-title">QA Bug & Release Portal</h1>
+              <p className="landing-sub">Portable Cloud Dashboard synced live with Google Sheets & Bugsee.</p>
+
+              <form onSubmit={handleUserLogin} autoComplete="off" style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                {loginError && (
+                  <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#f87171', fontSize: '0.8rem', padding: '0.5rem 0.75rem', borderRadius: 8 }}>
+                    ⚠️ {loginError}
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label className="form-label">Username or Email</label>
+                  <input 
+                    type="text" 
+                    name="quin_portable_login_user"
+                    className="form-input" 
+                    placeholder="e.g. admin or dev@quin.app"
+                    value={loginForm.username}
+                    onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+                    autoComplete="off"
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Password</label>
+                  <input 
+                    type="password" 
+                    name="quin_portable_sec_pass_no_autofill"
+                    className="form-input" 
+                    placeholder="Enter password"
+                    value={loginForm.password}
+                    onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                    autoComplete="new-password"
+                    aria-autocomplete="none"
+                    data-lpignore="true"
+                    data-form-type="other"
+                    required
+                  />
+                </div>
+
+                <button type="submit" className="btn-primary" style={{ justifyContent: 'center', width: '100%', padding: '0.65rem' }}>
+                  Sign In to Dashboard
+                </button>
+              </form>
+
+              <div style={{ margin: '1.25rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#8e9bb0', fontSize: '0.8rem' }}>
+                <div style={{ flex: 1, height: 1, background: 'var(--card-border)' }}></div>
+                <span>OR</span>
+                <div style={{ flex: 1, height: 1, background: 'var(--card-border)' }}></div>
+              </div>
+
+              <button type="button" className="btn-secondary" style={{ width: '100%', justifyContent: 'center', padding: '0.6rem' }} onClick={handleGuestLogin}>
+                Continue as Guest Viewer
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="app-container">
+          {/* Header Navbar */}
+          <header className="top-navbar">
+            <div className="header-brand-tier">
+              <div className="brand-section">
+                <div className="logo-badge">QUIN</div>
+                <div>
+                  <h1 className="brand-title">QA Bug & Release Dashboard</h1>
+                  <span className="lan-badge">🌐 Cloud Sync: {syncStatus}</span>
+                </div>
+              </div>
+
+              <div className="user-session-row">
+                <button 
+                  className="btn-secondary" 
+                  style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)', padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
+                  onClick={() => setShowSyncModal(true)}
+                  title="Click for Live Sync Details and Timestamps"
+                >
+                  🕒 Last Synced: {lastSyncTimestamp} (Auto: 15m)
+                </button>
+
+                <div className="user-session-box">
+                  👤 <strong>{currentUser.username} ({currentUser.role})</strong>
+                </div>
+                <button className="btn-secondary btn-logout" onClick={handleUserLogout}>Log Out</button>
+              </div>
+            </div>
+
+            <div className="header-menu-tier">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div className="env-switcher">
+                  <button 
+                    className={`env-btn ${mainTab === 'bugs' ? 'active prod' : ''}`} 
+                    onClick={() => setMainTab('bugs')}
+                  >
+                    🐞 Bug Tracker
+                  </button>
+                  <button 
+                    className={`env-btn ${mainTab === 'build_matrix' ? 'active dev' : ''}`}
+                    style={{ background: mainTab === 'build_matrix' ? 'linear-gradient(135deg, #a855f7, #6366f1)' : 'transparent', color: '#fff' }}
+                    onClick={() => setMainTab('build_matrix')}
+                  >
+                    🚀 Build-Wise Bug Matrix
+                  </button>
+                </div>
+
+                <div className="env-switcher">
+                  <button className={`env-btn ${activeEnvironment === 'Prod' ? 'active prod' : ''}`} onClick={() => setActiveEnvironment('Prod')}>
+                    Prod
+                  </button>
+                  <button className={`env-btn ${activeEnvironment === 'Dev' ? 'active dev' : ''}`} onClick={() => setActiveEnvironment('Dev')}>
+                    Dev
+                  </button>
+                  <button className={`env-btn ${activeEnvironment === 'All' ? 'active prod' : ''}`} onClick={() => setActiveEnvironment('All')}>
+                    All Envs
+                  </button>
+                </div>
+              </div>
+
+              <div className="action-buttons-group">
+                {!isViewer && (
+                  <button className="btn-primary" onClick={() => {
+                    const avail = calculateAvailablePrefixes();
+                    const defP = avail[0] ? avail[0].prefix : 'BUG';
+                    const match = avail.find(a => a.prefix === defP);
+                    setSelectedPrefix(defP);
+                    setNewBugForm(f => ({ ...f, custom_bug_key: match ? match.nextKey : 'BUG-1001', bug_prefix: defP }));
+                    setShowAddBugModal(true);
+                  }}>
+                    + Report Bug
+                  </button>
+                )}
+                {isAdmin && (
+                  <button className="btn-secondary" onClick={() => setShowTrashModal(true)}>🗑️ Trash Bin</button>
+                )}
+                <button className="btn-secondary" style={{ color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.4)' }} onClick={() => handleOpenReminderModal()}>
+                  🔔 Reminders
+                </button>
+                <button className="btn-secondary" style={{ color: '#a78bfa', borderColor: 'rgba(167, 139, 250, 0.4)' }} onClick={pushAllDataToSheet}>
+                  ⬆️ Push Data
+                </button>
+                <button className="btn-secondary" onClick={fetchSheetData}>
+                  ⬇️ Pull Data
+                </button>
+                <button className="btn-secondary" onClick={() => setShowSyncModal(true)}>
+                  ⚙️ Sync Details
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* MAIN VIEW CONTENT: Build-Wise Bug Matrix vs Standard Bug Tracker */}
+          {mainTab === 'build_matrix' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Build Matrix Header & Control Bar */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.9), rgba(15, 23, 42, 0.95))',
+                border: '1px solid rgba(168, 85, 247, 0.4)',
+                borderRadius: '16px',
+                padding: '1.25rem 1.5rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '1rem',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '1.4rem' }}>🚀</span>
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#f8fafc', margin: 0 }}>
+                      Build-Wise Bug Matrix & Release Health
+                    </h2>
+                    <span className="signoff-chip" style={{ background: 'rgba(168, 85, 247, 0.2)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.4)' }}>
+                      {getMatrixBuilds().length} Builds Registered
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
+                    Overview of all QA bugs categorized and grouped by exact Build Number & Version across Environments.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <div className="search-box" style={{ minWidth: '220px', background: '#090d16', borderColor: 'rgba(168,85,247,0.3)' }}>
+                    <input 
+                      type="text" 
+                      className="search-input" 
+                      placeholder="Search builds or release notes..."
+                      value={buildMatrixSearch}
+                      onChange={(e) => setBuildMatrixSearch(e.target.value)}
+                    />
+                  </div>
+
+                  <select 
+                    className="form-select"
+                    style={{ background: '#090d16', borderColor: 'rgba(168,85,247,0.3)' }}
+                    value={buildMatrixStatusFilter}
+                    onChange={(e) => setBuildMatrixStatusFilter(e.target.value)}
+                  >
+                    <option value="All">All Build Statuses</option>
+                    <option value="WithActiveBugs">🔴 With Active Bugs</option>
+                    <option value="Clean">🟢 Clean / Solved</option>
+                    <option value="Critical">⚡ Critical / High</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Build Cards List */}
+              {getMatrixBuilds().length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem', background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: '16px', color: '#94a3b8' }}>
+                  <h3>No matching builds found for current filters.</h3>
+                  <p>Try switching platform tabs or clear search query.</p>
+                </div>
+              ) : (
+                getMatrixBuilds().map(build => {
+                  const isExpanded = expandedBuildIds[build.id] !== false;
+                  return (
+                    <div 
+                      key={build.id}
+                      style={{
+                        background: 'var(--card-bg)',
+                        border: build.stats.critical > 0 ? '1px solid rgba(239, 68, 68, 0.4)' : build.stats.active > 0 ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid var(--card-border)',
+                        borderRadius: '16px',
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      {/* Build Card Header */}
+                      <div 
+                        style={{
+                          padding: '1.1rem 1.4rem',
+                          background: build.stats.critical > 0 ? 'linear-gradient(90deg, rgba(239,68,68,0.1), transparent)' : 'rgba(255,255,255,0.02)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          gap: '1rem',
+                          cursor: 'pointer',
+                          borderBottom: isExpanded ? '1px solid var(--card-border)' : 'none'
+                        }}
+                        onClick={() => setExpandedBuildIds(prev => ({ ...prev, [build.id]: !isExpanded }))}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#38bdf8' }}>
+                            {build.platform === 'iOS' ? '🍎' : build.platform === 'Android' ? '🤖' : '⚙️'} {build.platform}
+                          </span>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fff' }}>
+                              {build.prod_version || 'v1.0.0'}
+                            </span>
+                            {build.prod_build_number && (
+                              <span className="bug-key-badge" style={{ fontSize: '0.85rem' }}>
+                                Build #{build.prod_build_number}
+                              </span>
+                            )}
+                          </div>
+
+                          <span className="signoff-chip" style={{ background: build.environment === 'Dev' ? 'rgba(245,158,11,0.2)' : 'rgba(16,185,129,0.2)', color: build.environment === 'Dev' ? '#fbbf24' : '#34d399' }}>
+                            {build.environment || 'Prod'}
+                          </span>
+
+                          {build.feature_track && build.feature_track !== 'General' && (
+                            <span className="signoff-chip" style={{ background: 'rgba(168,85,247,0.2)', color: '#c084fc' }}>
+                              {build.feature_track}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Right Stats & Actions */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }} onClick={e => e.stopPropagation()}>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <span className="badge" style={{ background: build.stats.active > 0 ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)', color: build.stats.active > 0 ? '#f87171' : '#94a3b8' }}>
+                              🔴 {build.stats.active} Active
+                            </span>
+                            <span className="badge" style={{ background: build.stats.solved > 0 ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)', color: build.stats.solved > 0 ? '#34d399' : '#94a3b8' }}>
+                              🟢 {build.stats.solved} Solved
+                            </span>
+                            <span className="badge" style={{ background: 'rgba(56,189,248,0.1)', color: '#38bdf8' }}>
+                              📦 {build.stats.total} Bugs
+                            </span>
+                          </div>
+
+                          {!isViewer && (
+                            <button 
+                              className="btn-primary" 
+                              style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem', background: 'linear-gradient(135deg, #10b981, #059669)' }}
+                              onClick={() => {
+                                setNewBugForm(f => ({
+                                  ...f,
+                                  version: build.prod_version || 'v1.0.0',
+                                  build_number: build.prod_build_number || '',
+                                  platform: build.platform || 'Android',
+                                  environment: build.environment || 'Prod',
+                                  feature_track: build.feature_track || 'General'
+                                }));
+                                setShowAddBugModal(true);
+                              }}
+                            >
+                              + Bug for Build
+                            </button>
+                          )}
+
+                          <span style={{ fontSize: '1rem', color: '#94a3b8', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                            ▼
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Expandable Accordion Body */}
+                      {isExpanded && (
+                        <div style={{ padding: '1.25rem', background: '#090d16' }}>
+                          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem', background: 'var(--card-bg)', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid var(--card-border)' }}>
+                            {build.branch_name && (
+                              <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+                                🌿 Branch: <strong style={{ color: '#38bdf8' }}>{build.branch_name}</strong>
+                              </div>
+                            )}
+                            {build.release_notes && (
+                              <div style={{ fontSize: '0.82rem', color: '#94a3b8', flex: 1 }}>
+                                📝 Release Notes: <span style={{ color: '#cbd5e1' }}>{build.release_notes}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {build.bugs.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8', background: 'var(--card-bg)', borderRadius: '8px' }}>
+                              🎉 Clean Build! No reported bugs associated with this build.
+                            </div>
+                          ) : (
+                            <div className="table-container">
+                              <table className="bugs-table">
+                                <thead>
+                                  <tr>
+                                    <th>PLATFORM</th>
+                                    <th>Bug ID</th>
+                                    <th>Issue Summary</th>
+                                    <th>Severity</th>
+                                    <th>Category</th>
+                                    <th>Status</th>
+                                    <th>Reporter</th>
+                                  </tr>
+                                </thead>
+                                 <tbody>
+                                   {build.bugs.map(b => {
+                                     const p = getPlatformBadge(b);
+                                     return (
+                                       <tr key={b.id} style={{ cursor: 'pointer' }} onClick={() => handleOpenBugDetail(b)}>
+                                         <td>
+                                           <span className={p.className} style={p.style} title={`Platform: ${p.fullName}`}>
+                                             {p.text}
+                                           </span>
+                                         </td>
+                                         <td><span className="bug-key-badge">{b.bug_key}</span></td>
+                                         <td style={{ fontWeight: 600, color: '#f8fafc' }}>{b.title}</td>
+                                         <td>
+                                           <span className={`badge badge-${(b.severity || 'Medium').toLowerCase()}`}>
+                                             {b.severity}
+                                           </span>
+                                         </td>
+                                         <td>{b.category || 'Functional'}</td>
+                                         <td><span style={{ color: '#60a5fa', fontWeight: 600 }}>{b.status || 'Active'}</span></td>
+                                         <td>{b.reporter || 'QA Tester'}</td>
+                                       </tr>
+                                     );
+                                   })}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          ) : (
+            <>
+              {/* Standard Platform Category Tabs */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                <div className="tabs-container" style={{ margin: 0 }}>
+                  {['All Platforms', ...platforms].map(p => (
+                    <button 
+                      key={p} 
+                      className={`tab-btn ${activePlatform.toLowerCase() === p.toLowerCase() ? 'active' : ''}`}
+                      onClick={() => setActivePlatform(p)}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+                {!isViewer && (
+                  <button className="btn-secondary" style={{ fontSize: '0.8rem' }} onClick={() => setShowPlatformModal(true)}>
+                    ⚙️ Manage / Add Platform
+                  </button>
+                )}
+              </div>
+
+              {/* Filters Bar */}
+              <div className="filters-card">
+                <div className="search-box">
+                  <input 
+                    type="text" 
+                    className="search-input" 
+                    placeholder="Search by bug key or title..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+
+                <div className="filter-selects">
+                  <select className="form-select" value={activeProduct} onChange={(e) => setActiveProduct(e.target.value)}>
+                    <option value="All">All Products</option>
+                    <option value="Quin Within">Quin Within</option>
+                    <option value="Quin Fly">Quin Fly</option>
+                    <option value="Performance DC">Performance DC</option>
+                    <option value="Watch (All)">⌚ Watch (All Apps)</option>
+                    <option value="Watch - Quin">⌚ Watch - Quin</option>
+                    <option value="Watch - Fly">⌚ Watch - Fly</option>
+                    <option value="Watch - Performance DC">⌚ Watch - Performance DC</option>
+                  </select>
+
+                  <select className="form-select" value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)}>
+                    <option value="All">All Severities</option>
+                    {severities.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                  </select>
+
+                  <select className="form-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+                    <option value="All">All Categories</option>
+                    {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  </select>
+
+                  <select className="form-select" value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
+                    <option value="All">All Sources</option>
+                    <option value="Bugsee">Bugsee</option>
+                    <option value="Manual">Manual</option>
+                    <option value="Jira">Jira</option>
+                    <option value="QA">QA</option>
+                    <option value="Automated Test">Automated Test</option>
+                    <option value="Customer">Customer</option>
+                    <option value="Developer">Developer</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Bugs Table */}
+              <div className="table-container">
+                <table className="bugs-table">
+                  <thead>
+                    <tr>
+                      <th>PLATFORM</th>
+                      <th>Bug ID</th>
+                      <th>Issue Summary</th>
+                      <th>Platform / Product</th>
+                      <th>Environment</th>
+                      <th>Severity</th>
+                      <th>Category</th>
+                      <th>Status</th>
+                      {!isViewer && <th>Actions</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activeBugs.length === 0 ? (
+                      <tr>
+                        <td colSpan="9" style={{ textAlign: 'center', padding: '2rem', color: '#8e9bb0' }}>
+                          No active bugs found matching selected criteria.
+                        </td>
+                      </tr>
+                    ) : (
+                      activeBugs.map(b => {
+                        const p = getPlatformBadge(b);
+                        return (
+                          <tr key={b.id}>
+                            <td>
+                              <span className={p.className} style={p.style} title={`Platform: ${p.fullName}`}>
+                                {p.text}
+                              </span>
+                            </td>
+                            <td>
+                              <span className="bug-key-badge" style={{ cursor: 'pointer' }} onClick={() => handleOpenBugDetail(b)}>
+                                {b.bug_key}
+                              </span>
+                            </td>
+                          <td>
+                            <div style={{ cursor: 'pointer', fontWeight: 600 }} onClick={() => handleOpenBugDetail(b)}>
+                              {b.title}
+                            </div>
+                          </td>
+                          <td>{b.platform} ({b.product || 'Quin Within'})</td>
+                          <td><span style={{ fontSize: '0.75rem', fontWeight: 600, color: b.environment === 'Dev' ? '#f59e0b' : '#10b981' }}>{b.environment || 'Prod'}</span></td>
+                          <td>
+                            <span className={`badge badge-${(b.severity || 'Medium').toLowerCase()}`}>
+                              {b.severity || 'Medium'}
+                            </span>
+                          </td>
+                          <td>{b.category || 'Functional'}</td>
+                          <td><span style={{ color: '#60a5fa', fontWeight: 600 }}>{b.status || 'Active'}</span></td>
+                          {!isViewer && (
+                            <td style={{ textAlign: 'center' }}>
+                              <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                                <button 
+                                  className="btn-secondary" 
+                                  style={{ color: '#c084fc', borderColor: 'rgba(168,85,247,0.3)', padding: '0.2rem 0.45rem', fontSize: '0.72rem' }} 
+                                  onClick={() => handleQuickGmailDraft(b)} 
+                                  title="Create Gmail Draft to QA"
+                                >
+                                  📧 Gmail
+                                </button>
+                                <button 
+                                  className="btn-secondary" 
+                                  style={{ color: '#38bdf8', borderColor: 'rgba(56,189,248,0.3)', padding: '0.2rem 0.45rem', fontSize: '0.72rem' }} 
+                                  onClick={() => handleQuickMailtoDraft(b)} 
+                                  title="Open Native Mail App"
+                                >
+                                  📫 Mail
+                                </button>
+                                <button className="btn-secondary" style={{ color: '#ef4444', padding: '0.2rem 0.45rem', fontSize: '0.72rem' }} onClick={() => handleDeleteBug(b)}>
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })
+                  )}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+
+          {/* Sync Status & Timestamps Modal */}
+          {showSyncModal && (
+            <div className="modal-overlay">
+              <div className="modal-box">
+                <div className="modal-header">
+                  <span className="modal-title">📊 Google Sheet & Bugsee Sync Details</span>
+                  <button className="close-btn" onClick={() => setShowSyncModal(false)}>✕</button>
+                </div>
+                <div className="modal-body">
+                  <div style={{ background: '#1a2234', border: '1px solid var(--card-border)', borderRadius: 10, padding: '1rem', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ color: '#8e9bb0' }}>Last Synced Timestamp:</span>
+                      <strong style={{ color: '#38bdf8' }}>{lastSyncTimestamp}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ color: '#8e9bb0' }}>Recurring Auto-Sync:</span>
+                      <strong style={{ color: '#4ade80' }}>Every 15 Minutes</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#8e9bb0' }}>Current Sync Status:</span>
+                      <strong style={{ color: '#f59e0b' }}>{syncStatus}</strong>
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#121827', border: '1px solid var(--card-border)', borderRadius: 10, padding: '1rem', marginBottom: '1rem' }}>
+                    <h4 style={{ fontSize: '0.95rem', color: '#c084fc', marginBottom: '0.5rem' }}>⚡ Bugsee Integration & Historical Sync</h4>
+                    <p style={{ fontSize: '0.78rem', color: '#8e9bb0', marginBottom: '0.75rem' }}>
+                      Import existing Bugsee crash reports into internal QA records with 1 click.
+                    </p>
+                    <button className="btn-primary" style={{ background: 'linear-gradient(135deg, #a855f7, #7e22ce)' }} onClick={handleSyncHistoricalBugsee}>
+                      ↺ Sync Historical Bugsee Issues
+                    </button>
+                  </div>
+
+                  {isAdmin ? (
+                    <div className="form-group">
+                      <label className="form-label" style={{ color: '#60a5fa' }}>Google Sheet Web App Webhook URL (Admin Only)</label>
+                      <input 
+                        type="text" 
+                        className="form-input" 
+                        value={webhookUrl} 
+                        onChange={(e) => {
+                          setWebhookUrl(e.target.value);
+                          localStorage.setItem('quin_portable_webhook', e.target.value);
+                        }}
+                        autoComplete="off"
+                      />
+                    </div>
+                  ) : (
+                    <div style={{ background: '#0f172a', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 8, padding: '0.75rem 1rem', color: '#f87171', fontSize: '0.82rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      🔒 <strong>Restricted Access:</strong> Google Sheet Integration link is managed by Admin only. URL is protected & hidden from editing.
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '1rem' }}>
+                    <button className="btn-primary" style={{ background: '#8b5cf6' }} onClick={pushAllDataToSheet}>
+                      ⬆️ Push All Data Now
+                    </button>
+                    <button className="btn-secondary" style={{ color: '#38bdf8' }} onClick={fetchSheetData}>
+                      ⬇️ Pull Latest Sheet Data
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Team Bug Reminder & Mail Drafter Modal */}
+          {showReminderModal && (() => {
+            const teamBugs = getTeamActiveBugs(reminderSelectedTeam);
+            const selectedCount = teamBugs.filter(b => selectedReminderBugIds.includes(b.id)).length;
+            const currentTeamDef = TEAM_DEFINITIONS[reminderSelectedTeam] || TEAM_DEFINITIONS.Android;
+
+            return (
+              <div className="modal-overlay" style={{ zIndex: 1100 }}>
+                <div className="modal-box" style={{ maxWidth: '960px', width: '95vw', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+                  <div className="modal-header" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #4facfe 100%)', borderRadius: '8px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
+                        📫
+                      </div>
+                      <div>
+                        <span className="modal-title" style={{ fontSize: '1.25rem', fontWeight: 700 }}>Team Bug Reminder & Mail Drafter</span>
+                        <div style={{ fontSize: '0.78rem', color: '#8e9bb0', marginTop: '2px' }}>
+                          Select team platform, choose pending QA bugs, customize notes, and draft in 1-click
+                        </div>
+                      </div>
+                    </div>
+                    <button className="close-btn" onClick={() => setShowReminderModal(false)}>✕</button>
+                  </div>
+
+                  <div className="modal-body" style={{ overflowY: 'auto', flex: 1, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {/* Team Selector Tabs */}
+                    <div>
+                      <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.5rem', display: 'block', color: '#94a3b8' }}>
+                        1. Select Target Team / Platform:
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+                        {Object.entries(TEAM_DEFINITIONS).map(([key, def]) => {
+                          const count = getTeamActiveBugs(key).length;
+                          const isSelected = reminderSelectedTeam === key;
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => handleSwitchReminderTeam(key)}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '0.75rem 1rem',
+                                borderRadius: '10px',
+                                border: isSelected ? `2px solid ${def.color}` : '1px solid rgba(255,255,255,0.1)',
+                                background: isSelected ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.02)',
+                                boxShadow: isSelected ? `0 0 12px ${def.color}33` : 'none',
+                                cursor: 'pointer',
+                                color: '#fff',
+                                transition: 'all 0.2s ease',
+                                textAlign: 'left'
+                              }}
+                            >
+                              <div>
+                                <div style={{ fontWeight: 700, fontSize: '0.92rem', color: isSelected ? def.color : '#e2e8f0' }}>{def.name}</div>
+                                <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '2px' }}>{def.lead}</div>
+                              </div>
+                              <span style={{
+                                padding: '0.2rem 0.55rem',
+                                borderRadius: '12px',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                backgroundColor: count > 0 ? (isSelected ? def.color : 'rgba(255,255,255,0.15)') : 'rgba(255,255,255,0.05)',
+                                color: count > 0 ? (isSelected ? '#000' : '#fff') : '#64748b'
+                              }}>
+                                {count} active
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Recipients and Subject Setup */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '1rem' }}>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.8rem', color: '#38bdf8' }}>To (Team Recipients):</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={reminderRecipients}
+                          onChange={(e) => setReminderRecipients(e.target.value)}
+                          placeholder="comma-separated emails..."
+                          style={{ fontSize: '0.85rem' }}
+                        />
+                      </div>
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>CC (QA & Project Leads):</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={reminderCc}
+                          onChange={(e) => setReminderCc(e.target.value)}
+                          placeholder="comma-separated emails..."
+                          style={{ fontSize: '0.85rem' }}
+                        />
+                      </div>
+                      <div className="form-group" style={{ gridColumn: 'span 2', margin: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>Email Subject Line:</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={reminderSubject}
+                          onChange={(e) => setReminderSubject(e.target.value)}
+                          style={{ fontSize: '0.85rem', fontWeight: 600 }}
+                        />
+                      </div>
+                      <div className="form-group" style={{ gridColumn: 'span 2', margin: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>Custom Note / Directives to Team:</label>
+                        <textarea
+                          rows="2"
+                          className="form-textarea"
+                          value={reminderCustomNote}
+                          onChange={(e) => setReminderCustomNote(e.target.value)}
+                          style={{ fontSize: '0.85rem' }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Bug Selection Checklist */}
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <label className="form-label" style={{ fontWeight: 600, fontSize: '0.85rem', margin: 0, color: '#94a3b8' }}>
+                          2. Select Bugs to Include in Reminder ({selectedCount} of {teamBugs.length} selected):
+                        </label>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectAllTeamBugs(teamBugs)}
+                            style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', cursor: 'pointer' }}
+                          >
+                            Select All
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleDeselectAllTeamBugs}
+                            style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)', cursor: 'pointer' }}
+                          >
+                            Deselect All
+                          </button>
+                        </div>
+                      </div>
+
+                      {teamBugs.length === 0 ? (
+                        <div style={{ padding: '1.5rem', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px dashed rgba(255,255,255,0.1)', color: '#94a3b8', fontSize: '0.85rem' }}>
+                          🎉 Great job! No unresolved QA bugs found for {currentTeamDef.name}.
+                        </div>
+                      ) : (
+                        <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', background: 'rgba(0,0,0,0.2)' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
+                            <thead>
+                              <tr style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.08)', color: '#94a3b8' }}>
+                                <th style={{ padding: '0.5rem', width: '36px', textAlign: 'center' }}></th>
+                                <th style={{ padding: '0.5rem', width: '90px' }}>ID / Key</th>
+                                <th style={{ padding: '0.5rem' }}>Summary / Issue</th>
+                                <th style={{ padding: '0.5rem', width: '90px' }}>Platform</th>
+                                <th style={{ padding: '0.5rem', width: '90px' }}>Severity</th>
+                                <th style={{ padding: '0.5rem', width: '90px' }}>Priority</th>
+                                <th style={{ padding: '0.5rem', width: '90px' }}>Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {teamBugs.map(b => {
+                                const isChecked = selectedReminderBugIds.includes(b.id);
+                                const badge = getPlatformBadge(b);
+                                return (
+                                  <tr
+                                    key={b.id}
+                                    onClick={() => handleToggleReminderBug(b.id)}
+                                    style={{
+                                      borderBottom: '1px solid rgba(255,255,255,0.04)',
+                                      background: isChecked ? 'rgba(56, 189, 248, 0.05)' : 'transparent',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    <td style={{ padding: '0.5rem', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={() => handleToggleReminderBug(b.id)}
+                                        style={{ cursor: 'pointer' }}
+                                      />
+                                    </td>
+                                    <td style={{ padding: '0.5rem', fontWeight: 600, color: '#38bdf8' }}>{b.bug_key}</td>
+                                    <td style={{ padding: '0.5rem', color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '300px' }}>
+                                      {b.title}
+                                    </td>
+                                    <td style={{ padding: '0.5rem' }}>
+                                      <span style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem', borderRadius: '4px', background: 'rgba(255,255,255,0.1)', color: badge.color || '#38bdf8', border: '1px solid rgba(255,255,255,0.2)' }}>
+                                        {badge.text}
+                                      </span>
+                                    </td>
+                                    <td style={{ padding: '0.5rem' }}>
+                                      <span className={`badge-severity badge-severity-${(b.severity || 'medium').toLowerCase()}`} style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem' }}>
+                                        {b.severity || 'Medium'}
+                                      </span>
+                                    </td>
+                                    <td style={{ padding: '0.5rem' }}>
+                                      <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{b.priority || 'Medium'}</span>
+                                    </td>
+                                    <td style={{ padding: '0.5rem' }}>
+                                      <span style={{ fontSize: '0.72rem', color: b.status === 'Solved' ? '#4ade80' : '#facc15' }}>
+                                        {b.status || 'Active'}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Live Preview Accordion */}
+                    <details style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '8px', padding: '0.5rem 0.75rem' }}>
+                      <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem', color: '#38bdf8', userSelect: 'none' }}>
+                        🔍 Click to Inspect Formatted Email Body Preview ({selectedCount} bugs included)
+                      </summary>
+                      <pre style={{
+                        marginTop: '0.75rem',
+                        padding: '0.75rem',
+                        background: '#090d16',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        fontSize: '0.75rem',
+                        color: '#94a3b8',
+                        whiteSpace: 'pre-wrap',
+                        fontFamily: 'monospace',
+                        maxHeight: '160px',
+                        overflowY: 'auto'
+                      }}>
+                        {generateTeamReminderEmail().body}
+                      </pre>
+                    </details>
+                  </div>
+
+                  {/* Modal Footer / 1-Click Drafting Actions */}
+                  <div className="modal-footer" style={{ borderTop: '1px solid rgba(255,255,255,0.1)', padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                      From: <strong>Your Email Account</strong> (routes directly to Gmail Web or your local Mail client)
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={handleCopyReminderContent}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}
+                      >
+                        📋 Copy Text
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={handleDraftReminderMailto}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem' }}
+                      >
+                        📫 Open Mail App
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        onClick={handleDraftReminderGmail}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', background: 'linear-gradient(135deg, #00f2fe 0%, #4facfe 100%)', color: '#090d16', fontWeight: 700 }}
+                      >
+                        📧 Draft in Gmail Web
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => setShowReminderModal(false)}
+                        style={{ fontSize: '0.82rem' }}
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Streamlined Issue Detail Modal */}
+          {showIssueDetailModal && selectedBugDetail && (
+            <div className="modal-overlay">
+              <div className="modal-box" style={{ maxWidth: '900px', width: '95%' }}>
+                <div className="modal-header" style={{ background: '#0f172a', borderBottom: '1px solid #1e293b', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    {(() => {
+                      const p = getPlatformBadge(selectedBugDetail);
+                      return (
+                        <span className={p.className} style={{ ...p.style, fontSize: '0.85rem', padding: '0.3rem 0.75rem' }} title={`Platform: ${p.fullName}`}>
+                          {p.text}
+                        </span>
+                      );
+                    })()}
+                    <span className="bug-key-badge" style={{ fontSize: '1rem', padding: '0.3rem 0.75rem' }}>
+                      {selectedBugDetail.bug_key}
+                    </span>
+                    {selectedBugDetail.external_id && (
+                      <span className="signoff-chip" style={{ background: 'rgba(168, 85, 247, 0.2)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.4)' }}>
+                        External ID: {selectedBugDetail.external_id}
+                      </span>
+                    )}
+                    <span className={`badge badge-${(selectedBugDetail.severity || 'Medium').toLowerCase()}`}>
+                      {selectedBugDetail.severity}
+                    </span>
+                    <span className="signoff-chip" style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa' }}>
+                      {selectedBugDetail.category}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {(selectedBugDetail.source === 'Jira' || selectedBugDetail.jira_url || (selectedBugDetail.external_id && (selectedBugDetail.external_id.startsWith('QUIN') || selectedBugDetail.external_id.startsWith('QDB')))) ? (
+                      <a 
+                        href={getEffectiveBugUrl(selectedBugDetail)} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="btn-primary" 
+                        style={{ background: 'linear-gradient(135deg, #0052cc, #0747a6)', textDecoration: 'none', padding: '0.45rem 0.95rem', fontSize: '0.85rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        🔗 Open in Jira ↗
+                      </a>
+                    ) : (selectedBugDetail.source === 'Bugsee' || selectedBugDetail.bugsee_url || (selectedBugDetail.external_id && selectedBugDetail.external_id.startsWith('BUGSEE'))) ? (
+                      <a 
+                        href={getEffectiveBugUrl(selectedBugDetail)} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="btn-primary" 
+                        style={{ background: 'linear-gradient(135deg, #a855f7, #7e22ce)', textDecoration: 'none', padding: '0.45rem 0.95rem', fontSize: '0.85rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        🔗 Open in Bugsee ↗
+                      </a>
+                    ) : (selectedBugDetail.drive_url || selectedBugDetail.attachment_path || selectedBugDetail.external_url) ? (
+                      <a 
+                        href={getEffectiveBugUrl(selectedBugDetail)} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="btn-primary" 
+                        style={{ background: 'linear-gradient(135deg, #059669, #10b981)', textDecoration: 'none', padding: '0.45rem 0.95rem', fontSize: '0.85rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        🔗 View Drive File ↗
+                      </a>
+                    ) : null}
+                    <button className="close-btn" onClick={() => setShowIssueDetailModal(false)}>✕</button>
+                  </div>
+                </div>
+
+                <div style={{ padding: '0.85rem 1.25rem', background: '#090d16', borderBottom: '1px solid var(--card-border)' }}>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f0f4f8', margin: 0 }}>
+                    {selectedBugDetail.title}
+                  </h3>
+                </div>
+
+                <div className="tabs-container" style={{ margin: 0, padding: '0.75rem 1.25rem', borderBottom: '1px solid var(--card-border)', background: '#121827' }}>
+                  <button className={`tab-btn ${detailActiveTab === 'qa' ? 'active' : ''}`} onClick={() => setDetailActiveTab('qa')}>
+                    📌 QA Summary
+                  </button>
+                  <button className={`tab-btn ${detailActiveTab === 'crash' ? 'active' : ''}`} onClick={() => setDetailActiveTab('crash')}>
+                    💥 Crash & Stack Trace
+                  </button>
+                  <button className={`tab-btn ${detailActiveTab === 'logs' ? 'active' : ''}`} onClick={() => setDetailActiveTab('logs')}>
+                    📜 Logs & Network
+                  </button>
+                  <button className={`tab-btn ${detailActiveTab === 'breadcrumbs' ? 'active' : ''}`} onClick={() => setDetailActiveTab('breadcrumbs')}>
+                    🐾 User Actions & Breadcrumbs
+                  </button>
+                  <button className={`tab-btn ${detailActiveTab === 'device' ? 'active' : ''}`} onClick={() => setDetailActiveTab('device')}>
+                    📱 Device Specs
+                  </button>
+                </div>
+
+                <div className="modal-body" style={{ minHeight: '320px' }}>
+                  {detailActiveTab === 'qa' && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                      <div style={{ background: '#1a2234', padding: '0.85rem', borderRadius: 10, border: '1px solid var(--card-border)' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#8e9bb0' }}>Status & Ownership</div>
+                        <div style={{ fontSize: '1rem', fontWeight: 700, color: '#60a5fa', marginTop: 4 }}>
+                          {selectedBugDetail.status}
+                        </div>
+                        <div style={{ fontSize: '0.82rem', marginTop: 6 }}>👤 Reporter: <strong>{selectedBugDetail.reporter || 'QA Tester'}</strong></div>
+                        <div style={{ fontSize: '0.82rem', marginTop: 2 }}>🛠️ Assigned: <strong>{selectedBugDetail.assigned_to || 'Unassigned'}</strong></div>
+                      </div>
+
+                      <div style={{ background: '#1a2234', padding: '0.85rem', borderRadius: 10, border: '1px solid var(--card-border)' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#8e9bb0' }}>Environment & Build</div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 700, color: (typeof selectedBugDetail.environment === 'string' && selectedBugDetail.environment === 'Dev') ? '#fbbf24' : '#34d399', marginTop: 4 }}>
+                          {(typeof selectedBugDetail.environment === 'string' ? selectedBugDetail.environment : selectedBugDetail.environment_name) || 'Prod'} Build
+                        </div>
+                        <div style={{ fontSize: '0.82rem', marginTop: 6 }}>📱 Platform: <strong>{selectedBugDetail.platform}</strong></div>
+                        <div style={{ fontSize: '0.82rem', marginTop: 2 }}>📦 App: <strong>{selectedBugDetail.product || 'Quin Within'}</strong></div>
+                        <div style={{ fontSize: '0.82rem', marginTop: 2 }}>🔖 Version: <strong>{selectedBugDetail.version || '1.1.2'} (Build {selectedBugDetail.build_number || '518'})</strong></div>
+                      </div>
+
+                      <div style={{ background: '#1a2234', padding: '0.85rem', borderRadius: 10, border: '1px solid var(--card-border)', gridColumn: '1 / -1' }}>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#8e9bb0', marginBottom: 6 }}>Issue Description & Notes</div>
+                        <pre style={{ background: '#090d16', padding: '0.75rem', borderRadius: 8, fontSize: '0.85rem', whiteSpace: 'pre-wrap', color: '#e2e8f0', border: '1px solid var(--card-border)' }}>
+                          {selectedBugDetail.description || 'No additional description provided.'}
+                        </pre>
+                      </div>
+
+                      <div style={{ background: '#1a2234', padding: '0.85rem', borderRadius: 10, border: '1px solid rgba(168, 85, 247, 0.3)', gridColumn: '1 / -1', marginTop: '0.25rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#c084fc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            ✉️ Resolution Email Drafter
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button className="btn-primary" style={{ background: 'linear-gradient(135deg, #a855f7, #7e22ce)', fontSize: '0.8rem', padding: '0.35rem 0.75rem', fontWeight: 700 }} onClick={() => handleQuickGmailDraft(selectedBugDetail)}>
+                              📧 Draft in Gmail
+                            </button>
+                            <button className="btn-primary" style={{ background: 'linear-gradient(135deg, #0284c7, #0369a1)', fontSize: '0.8rem', padding: '0.35rem 0.75rem', fontWeight: 700 }} onClick={() => handleQuickMailtoDraft(selectedBugDetail)}>
+                              📫 Open System Mail App
+                            </button>
+                          </div>
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: '#8e9bb0', marginBottom: '0.35rem' }}>
+                          Recipients: <code style={{ color: '#60a5fa' }}>devanand.a@quintessential.design, leonard@quintessential.design</code>
+                        </div>
+                        <pre style={{ background: '#090d16', padding: '0.75rem', borderRadius: 8, fontSize: '0.78rem', color: '#94a3b8', maxHeight: '120px', overflowY: 'auto', border: '1px solid var(--card-border)' }}>
+                          {generateMailDraftData(selectedBugDetail).body}
+                        </pre>
+                      </div>
+                    </div>
+                  )}
+
+                  {detailActiveTab === 'crash' && (
+                    <div>
+                      <h4 style={{ fontSize: '0.95rem', color: '#f87171', marginBottom: '0.75rem' }}>💥 Exception & Stack Trace</h4>
+                      <pre style={{ background: '#090d16', padding: '1rem', borderRadius: 10, fontSize: '0.82rem', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)', overflowX: 'auto', maxHeight: '350px' }}>
+                        {selectedBugDetail.stack_trace || `java.util.ConcurrentModificationException\n  at java.util.ArrayList$Itr.next(ArrayList.java:860)\n  at com.quin.within.ble.BleScanner.onScanResult(BleScanner.kt:142)\n  at android.bluetooth.le.BluetoothLeScanner$1.onScanResult(BluetoothLeScanner.java:210)`}
+                      </pre>
+                    </div>
+                  )}
+
+                  {detailActiveTab === 'logs' && (
+                    <div>
+                      <h4 style={{ fontSize: '0.95rem', color: '#38bdf8', marginBottom: '0.75rem' }}>📜 Console & Network Logs Around Crash</h4>
+                      <pre style={{ background: '#090d16', padding: '1rem', borderRadius: 10, fontSize: '0.82rem', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', overflowX: 'auto', maxHeight: '350px' }}>
+                        {selectedBugDetail.console_logs || `[14:22:01.002] INFO: Scanning for Quin Smart Helmet BLE advertisement...\n[14:22:02.115] DEBUG: Device discovered MAC=AA:BB:CC:DD:EE:FF RSSI=-54dBm\n[14:22:02.119] ERROR: ConcurrentModificationException in list iteration!\nGET /api/v1/products 200 OK (34ms)`}
+                      </pre>
+                    </div>
+                  )}
+
+                  {detailActiveTab === 'breadcrumbs' && (
+                    <div>
+                      <h4 style={{ fontSize: '0.95rem', color: '#fbbf24', marginBottom: '0.75rem' }}>🐾 Step-by-Step User Actions (Breadcrumbs)</h4>
+                      <pre style={{ background: '#090d16', padding: '1rem', borderRadius: 10, fontSize: '0.85rem', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)', overflowX: 'auto', maxHeight: '350px' }}>
+                        {selectedBugDetail.breadcrumbs || `1. App Launch\n2. Bluetooth Turned ON\n3. Start Quin Helmet Scan\n4. Device Discovered\n5. Crash on UI Update`}
+                      </pre>
+                    </div>
+                  )}
+
+                  {detailActiveTab === 'device' && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                      <div style={{ background: '#1a2234', padding: '0.85rem', borderRadius: 10, border: '1px solid var(--card-border)' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#8e9bb0' }}>Device Hardware</div>
+                        <strong style={{ fontSize: '0.95rem', color: '#fff' }}>{selectedBugDetail.device_model || 'Samsung Galaxy S22'}</strong>
+                      </div>
+                      <div style={{ background: '#1a2234', padding: '0.85rem', borderRadius: 10, border: '1px solid var(--card-border)' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#8e9bb0' }}>OS & API Level</div>
+                        <strong style={{ fontSize: '0.95rem', color: '#fff' }}>{selectedBugDetail.os_version || 'Android 14 (API 34)'}</strong>
+                      </div>
+                      <div style={{ background: '#1a2234', padding: '0.85rem', borderRadius: 10, border: '1px solid var(--card-border)' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#8e9bb0' }}>Bluetooth State</div>
+                        <strong style={{ fontSize: '0.95rem', color: '#4ade80' }}>Enabled (BLE 5.2)</strong>
+                      </div>
+                      <div style={{ background: '#1a2234', padding: '0.85rem', borderRadius: 10, border: '1px solid var(--card-border)' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#8e9bb0' }}>Network Type</div>
+                        <strong style={{ fontSize: '0.95rem', color: '#38bdf8' }}>Wi-Fi / 5G</strong>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Report Bug Modal */}
+          {showAddBugModal && (
+            <div className="modal-overlay">
+              <div className="modal-box">
+                <div className="modal-header">
+                  <span className="modal-title">Report New Bug</span>
+                  <button className="close-btn" onClick={() => setShowAddBugModal(false)}>✕</button>
+                </div>
+                <div className="modal-body">
+                  <form onSubmit={handleCreateBug} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                    {/* SMART BUG ID & PREFIX SELECTOR CARD */}
+                    <div style={{
+                      gridColumn: '1 / -1',
+                      background: 'rgba(56, 189, 248, 0.05)',
+                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      borderRadius: '12px',
+                      padding: '1rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.85rem'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <label className="form-label" style={{ margin: 0, color: '#38bdf8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          🏷️ Smart Bug ID & Prefix Selector
+                        </label>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          style={{ padding: '0.2rem 0.6rem', fontSize: '0.72rem', color: '#38bdf8', borderColor: 'rgba(56,189,248,0.4)', background: 'rgba(56,189,248,0.1)' }}
+                          onClick={handleMigrateUniversalKeys}
+                          title="Convert all existing bugs to Universal Platform IDs (AND-0001, IOS-0001, WEB-0001, BEND-0001)"
+                        >
+                          ⚡ Universal Platform IDs
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '0.85rem' }}>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label">
+                            Available Prefix Selector
+                          </label>
+                          <div style={{ display: 'flex', gap: '0.4rem' }}>
+                            <select 
+                              className="form-select"
+                              style={{ flex: 1, minWidth: 0, borderColor: 'rgba(56, 189, 248, 0.4)', fontWeight: 'bold' }}
+                              value={selectedPrefix}
+                              onChange={(e) => {
+                                const p = e.target.value;
+                                setSelectedPrefix(p);
+                                const avail = calculateAvailablePrefixes();
+                                const match = avail.find(a => a.prefix === p);
+                                if (match) {
+                                  setNewBugForm(f => ({ ...f, custom_bug_key: match.nextKey, bug_prefix: p }));
+                                }
+                              }}
+                            >
+                              {calculateAvailablePrefixes().map(item => (
+                                <option key={item.prefix} value={item.prefix}>
+                                  {item.prefix} ➔ Next: {item.nextKey} {item.latestSeq > 0 ? `(Latest: #${item.latestSeq})` : '(New)'}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              style={{ padding: '0.3rem 0.65rem', fontSize: '0.72rem', whiteSpace: 'nowrap', borderColor: 'rgba(239, 68, 68, 0.4)', color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)' }}
+                              onClick={() => handleDeletePrefix(selectedPrefix)}
+                              title="Delete selected prefix suggestion from dropdown"
+                            >
+                              🗑️ Delete
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label">
+                            Suggested Bug ID (Auto-Incremented) *
+                          </label>
+                          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <input 
+                              type="text" 
+                              className="form-input" 
+                              style={{ flex: '1 1 140px', minWidth: '120px', fontFamily: 'monospace', fontWeight: 'bold', color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.4)' }}
+                              value={newBugForm.custom_bug_key || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const p = val.split('-')[0].toUpperCase().replace(/[^A-Z0-9]/g, '');
+                                setNewBugForm(f => ({ ...f, custom_bug_key: val, bug_prefix: p }));
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.4)' }}
+                              onClick={() => handleResetPrefixSequence(selectedPrefix)}
+                              title="Reset sequence counter back to #0001"
+                            >
+                              ⏮️ Reset #0001
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                      <label className="form-label">Issue Summary / Title *</label>
+                      <input 
+                        type="text" 
+                        className="form-input" 
+                        placeholder="e.g. NullPointer in BLE Scanner fragment"
+                        value={newBugForm.title}
+                        onChange={(e) => setNewBugForm({ ...newBugForm, title: e.target.value })}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Environment *</label>
+                      <select className="form-select" value={newBugForm.environment} onChange={(e) => setNewBugForm({ ...newBugForm, environment: e.target.value })}>
+                        <option value="Prod">Prod (Production)</option>
+                        <option value="Dev">Dev (Development)</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Platform *</label>
+                      <select className="form-select" value={newBugForm.platform} onChange={(e) => setNewBugForm({ ...newBugForm, platform: e.target.value })}>
+                        {platforms.map(p => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Product / App *</label>
+                      <select className="form-select" value={newBugForm.product || 'Quin Within'} onChange={(e) => setNewBugForm({ ...newBugForm, product: e.target.value })}>
+                        <option value="Quin Within">Quin Within</option>
+                        <option value="Quin Fly">Quin Fly</option>
+                        <option value="Performance DC">Performance DC</option>
+                        <option value="Watch - Quin">⌚ Watch - Quin</option>
+                        <option value="Watch - Fly">⌚ Watch - Fly</option>
+                        <option value="Watch - Performance DC">⌚ Watch - Performance DC</option>
+                      </select>
+                    </div>
+
+                    {newBugForm.environment === 'Dev' && (
+                      <div className="form-group">
+                        <label className="form-label" style={{ color: '#f59e0b' }}>Dev Feature Track *</label>
+                        <select className="form-select" value={newBugForm.feature_track} onChange={(e) => setNewBugForm({ ...newBugForm, feature_track: e.target.value })}>
+                          <option value="General">General</option>
+                          <option value="Multi Language">Multi Language</option>
+                          <option value="No Network">No Network</option>
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="form-group">
+                      <label className="form-label">Severity *</label>
+                      <select className="form-select" value={newBugForm.severity} onChange={(e) => setNewBugForm({ ...newBugForm, severity: e.target.value })}>
+                        {severities.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Category *</label>
+                      <select className="form-select" value={newBugForm.category} onChange={(e) => setNewBugForm({ ...newBugForm, category: e.target.value })}>
+                        {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                      </select>
+                    </div>
+
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                      <label className="form-label">Description & Log Trace (Optional)</label>
+                      <textarea className="form-textarea" value={newBugForm.description} onChange={(e) => setNewBugForm({ ...newBugForm, description: e.target.value })} />
+                    </div>
+
+                    <button type="submit" className="btn-primary" style={{ gridColumn: '1 / -1', justifyContent: 'center', padding: '0.75rem' }}>
+                      Save Bug Record
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Trash Bin Modal */}
+          {showTrashModal && (
+            <div className="modal-overlay">
+              <div className="modal-box" style={{ maxWidth: '800px' }}>
+                <div className="modal-header">
+                  <span className="modal-title">🗑️ Deleted Bugs Trash</span>
+                  <button className="close-btn" onClick={() => setShowTrashModal(false)}>✕</button>
+                </div>
+                <div className="modal-body">
+                  <table className="bugs-table">
+                    <thead>
+                      <tr>
+                        <th>Bug ID</th>
+                        <th>Title</th>
+                        <th>Deleted By</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {trashBugs.length === 0 ? (
+                        <tr><td colSpan="4" style={{ textAlign: 'center', padding: '1.5rem', color: '#8e9bb0' }}>No deleted bugs in Trash.</td></tr>
+                      ) : (
+                        trashBugs.map(b => (
+                          <tr key={b.id}>
+                            <td><span className="bug-key-badge">{b.bug_key}</span></td>
+                            <td>{b.title}</td>
+                            <td>{b.deleted_by || 'Admin'}</td>
+                            <td>
+                              <button className="btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', background: '#10b981' }} onClick={() => setBugs(bugs.map(x => x.id === b.id ? { ...x, is_deleted: 0 } : x))}>
+                                ↺ Restore
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Manage Platforms Modal (Add & Delete) */}
+          {showPlatformModal && (
+            <div className="modal-overlay">
+              <div className="modal-box" style={{ maxWidth: '520px' }}>
+                <div className="modal-header">
+                  <span className="modal-title">⚙️ Manage Platforms</span>
+                  <button className="close-btn" onClick={() => setShowPlatformModal(false)}>✕</button>
+                </div>
+                <div className="modal-body">
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <label className="form-label" style={{ marginBottom: '0.5rem', display: 'block' }}>Existing Platforms</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '220px', overflowY: 'auto' }}>
+                      {platforms.map(p => (
+                        <div 
+                          key={p} 
+                          style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center', 
+                            padding: '0.6rem 0.85rem', 
+                            background: 'rgba(255, 255, 255, 0.04)', 
+                            border: '1px solid var(--card-border)', 
+                            borderRadius: '8px' 
+                          }}
+                        >
+                          <span style={{ fontWeight: 600 }}>{p}</span>
+                          <button 
+                            type="button" 
+                            className="btn-secondary" 
+                            style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.1)' }}
+                            onClick={() => handleDeletePlatform(p)}
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleAddPlatform} style={{ borderTop: '1px solid var(--card-border)', paddingTop: '1rem' }}>
+                    <div className="form-group">
+                      <label className="form-label">+ Add New Platform / Device</label>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input 
+                          type="text" 
+                          className="form-input"
+                          placeholder="e.g. FOTA App, Smartwatch, Mac"
+                          value={newPlatformName}
+                          onChange={(e) => setNewPlatformName(e.target.value)}
+                          required
+                        />
+                        <button type="submit" className="btn-primary" style={{ whiteSpace: 'nowrap' }}>
+                          + Add
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Global Error Boundary for Standalone Browser Execution
+    class ErrorBoundary extends React.Component {
+      constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+      }
+      static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+      }
+      componentDidCatch(error, errorInfo) {
+        console.error("Dashboard Render Error:", error, errorInfo);
+      }
+      handleReset = () => {
+        localStorage.removeItem('quin_portable_bugs');
+        localStorage.removeItem('quin_portable_builds');
+        localStorage.removeItem('quin_portable_user');
+        window.location.reload();
+      };
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div className="landing-container">
+              <div className="landing-card" style={{ maxWidth: '540px' }}>
+                <div className="landing-logo" style={{ background: '#ef4444', color: '#fff' }}>⚠️ RECOVERY MODE</div>
+                <h2 className="landing-title">Dashboard Recovery</h2>
+                <p className="landing-sub">
+                  An error occurred while loading cached data. Click below to clear local storage cache and restore default data.
+                </p>
+                <div style={{ background: '#090d16', border: '1px solid rgba(239, 68, 68, 0.4)', borderRadius: 8, padding: '0.75rem', marginBottom: '1rem', fontSize: '0.8rem', color: '#f87171', fontFamily: 'monospace', textAlign: 'left' }}>
+                  {this.state.error?.toString()}
+                </div>
+                <button className="btn-primary" style={{ width: '100%', justifyContent: 'center', background: '#ef4444' }} onClick={this.handleReset}>
+                  ↺ Clear Cache & Restore Default View
+                </button>
+              </div>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(
+      <ErrorBoundary>
+        <StandaloneDashboard />
+      </ErrorBoundary>
+    );
+  </script>
+</body>
+</html>
