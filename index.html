@@ -9,6 +9,7 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <!-- Google Fonts & Lucide Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -278,6 +279,31 @@
           }
           return defaultPlatforms;
         } catch (e) { return defaultPlatforms; }
+      });
+      const defaultProducts = [
+        { id: 1, name: 'Quin Within', platform_name: 'Android' },
+        { id: 2, name: 'Quin Fly', platform_name: 'Android' },
+        { id: 3, name: 'Performance DC', platform_name: 'Android' },
+        { id: 4, name: 'Performance App', platform_name: 'Android' },
+        { id: 5, name: 'Watch - Quin', platform_name: 'Android' },
+        { id: 6, name: 'Watch - Fly', platform_name: 'Android' },
+        { id: 7, name: 'Watch - Performance DC', platform_name: 'Android' },
+        { id: 8, name: 'Quin Within', platform_name: 'iOS' },
+        { id: 9, name: 'Quin Fly', platform_name: 'iOS' },
+        { id: 10, name: 'Performance DC', platform_name: 'iOS' },
+        { id: 11, name: 'Performance App', platform_name: 'iOS' },
+        { id: 12, name: 'Watch - Quin', platform_name: 'iOS' },
+        { id: 13, name: 'Watch - Fly', platform_name: 'iOS' },
+        { id: 14, name: 'Watch - Performance DC', platform_name: 'iOS' },
+        { id: 15, name: 'Quin Web Portal', platform_name: 'Web' },
+        { id: 16, name: 'APIs & Services', platform_name: 'Backend' }
+      ];
+      const [products, setProducts] = useState(() => {
+        try {
+          const saved = localStorage.getItem('quin_portable_products');
+          const parsed = saved ? JSON.parse(saved) : null;
+          return Array.isArray(parsed) && parsed.length > 0 ? parsed : defaultProducts;
+        } catch (e) { return defaultProducts; }
       });
       const [showPlatformModal, setShowPlatformModal] = useState(false);
       const [newPlatformName, setNewPlatformName] = useState('');
@@ -954,6 +980,10 @@ Quintessential Design QA Team`;
               setBugs(cleanedBugs);
             }
             if (Array.isArray(data.builds) && data.builds.length > 0) setBuilds(data.builds);
+            if (Array.isArray(data.products) && data.products.length > 0) {
+              setProducts(data.products);
+              try { localStorage.setItem('quin_portable_products', JSON.stringify(data.products)); } catch(e) {}
+            }
           }
           setSyncStatus('Synced');
           setLastSyncTimestamp(new Date().toLocaleTimeString());
@@ -991,23 +1021,58 @@ Quintessential Design QA Team`;
         }
       };
 
-      // Push All Data to Google Sheet Web App
+      // Push All Data to Google Sheet Web App (Bugs, Builds, Platforms, Products, Tracks)
       const pushAllDataToSheet = async () => {
         if (!webhookUrl) return;
         setSyncStatus('Pushing...');
-        const success = await sendPostToGoogleSheet({
-          action: 'FULL_SYNC',
+        const payloadData = {
           bugs,
           builds,
-          allData: { bugs, builds }
+          platforms: platforms.map((p, i) => ({ id: i + 1, name: p, code: p.toLowerCase().replace(/[^a-z0-9]/g, '_') })),
+          products,
+          tracks: [
+            { id: 1, name: 'Multi Language', code: 'multi_language', description: 'Multi language support' },
+            { id: 2, name: 'New API', code: 'new_api', description: 'Updated backend API integration' },
+            { id: 3, name: 'Production Ready', code: 'production_ready', description: 'Production signoff track' }
+          ]
+        };
+        const success = await sendPostToGoogleSheet({
+          action: 'FULL_SYNC',
+          allData: payloadData
         });
         if (success) {
           setSyncStatus('Synced');
           setLastSyncTimestamp(new Date().toLocaleTimeString());
-          alert('✅ Dataset successfully pushed to Google Sheet!');
+          alert('✅ Full dataset (Bugs, Builds, Platforms, Products, Tracks) successfully pushed to Google Sheet!');
         } else {
           setSyncStatus('Error');
           alert('⚠️ Push failed. Please check network connection.');
+        }
+      };
+
+      // Direct Client-Side Excel Export (.xlsx)
+      const exportToExcel = () => {
+        try {
+          if (typeof XLSX === 'undefined') {
+            alert('Spreadsheet library is still initializing. Please try again.');
+            return;
+          }
+          const wb = XLSX.utils.book_new();
+          const activeBugs = bugs.filter(b => b.is_deleted !== 1);
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(activeBugs.length ? activeBugs : [{ message: 'No bugs' }]), 'Bugs');
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(builds.length ? builds : [{ message: 'No builds' }]), 'Builds');
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(platforms.map((p, i) => ({ id: i + 1, name: p }))), 'Platforms');
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(products), 'Products');
+          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([
+            { id: 1, name: 'Multi Language', code: 'multi_language' },
+            { id: 2, name: 'New API', code: 'new_api' },
+            { id: 3, name: 'Production Ready', code: 'production_ready' }
+          ]), 'Tracks');
+
+          XLSX.writeFile(wb, `Quin_QA_Full_Database_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        } catch (err) {
+          console.error('Excel Export Error:', err);
+          alert('Failed to generate Excel export: ' + err.message);
         }
       };
 
@@ -1021,9 +1086,12 @@ Quintessential Design QA Team`;
             try {
               await sendPostToGoogleSheet({
                 action: 'FULL_SYNC',
-                bugs,
-                builds,
-                allData: { bugs, builds }
+                allData: {
+                  bugs,
+                  builds,
+                  platforms: platforms.map((p, i) => ({ id: i + 1, name: p, code: p.toLowerCase().replace(/[^a-z0-9]/g, '_') })),
+                  products
+                }
               });
               const res = await fetch(webhookUrl, { method: 'GET', redirect: 'follow' });
               const text = await res.text();
@@ -1348,6 +1416,9 @@ Quintessential Design QA Team`;
                 <button className="btn-secondary" onClick={() => setShowSyncModal(true)}>
                   ⚙️ Sync Details
                 </button>
+                <button className="btn-secondary" style={{ color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.4)' }} onClick={exportToExcel} title="Dump full database to Excel (.xlsx)">
+                  📊 Dump to Excel
+                </button>
               </div>
             </div>
           </header>
@@ -1616,13 +1687,10 @@ Quintessential Design QA Team`;
                 <div className="filter-selects">
                   <select className="form-select" value={activeProduct} onChange={(e) => setActiveProduct(e.target.value)}>
                     <option value="All">All Products</option>
-                    <option value="Quin Within">Quin Within</option>
-                    <option value="Quin Fly">Quin Fly</option>
-                    <option value="Performance DC">Performance DC</option>
                     <option value="Watch (All)">⌚ Watch (All Apps)</option>
-                    <option value="Watch - Quin">⌚ Watch - Quin</option>
-                    <option value="Watch - Fly">⌚ Watch - Fly</option>
-                    <option value="Watch - Performance DC">⌚ Watch - Performance DC</option>
+                    {Array.from(new Set(products.map(p => p.name))).map(name => (
+                      <option key={name} value={name}>{name.toLowerCase().includes('watch') ? `⌚ ${name}` : name}</option>
+                    ))}
                   </select>
 
                   <select className="form-select" value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)}>
